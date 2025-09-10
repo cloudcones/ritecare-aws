@@ -1,5 +1,4 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: |
 Description: Org-wide infra CodePipeline
   This template defines an organization-wide infrastructure CodePipeline.
   The pipeline uses a GitHub source and deploys CloudFormation StackSets
@@ -72,7 +71,7 @@ Resources:
               OutputArtifacts:
                 - Name: SourceOut
 
-        # Deploys the common IAM role (`cfn_deploy_role`) that CloudFormation StackSets will assume in each target account.
+        # Deploys the common IAM role that CloudFormation will assume in each target account.
         - Name: Deploy-cfn-deploy-role        	
           Actions:
             - Name: cfn-deploy-role
@@ -98,46 +97,46 @@ Resources:
               RunOrder: 1
 
         # Deploys account specific parameters as SSM parameters
-        - Name: Deploy-ssm
-          Actions:
-            - Name: Deploy-ssm-DEV
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Provider: CloudFormation
-                Version: '1'
-              InputArtifacts:
-                - Name: SourceOut
-              Configuration:
-                ActionMode: CREATE_UPDATE
-                StackName: Deploy-ssm
-                TemplatePath: SourceOut::cfn/ssm_seed.yaml
-                TemplateConfiguration: !Sub "SourceOut::params/${DevAccountId}.json"
-                Capabilities: CAPABILITY_NAMED_IAM
-                RoleArn: !Sub "arn:aws:iam::${DevAccountId}:role/${TargetRoleName}"
-              Region: !Ref Region
-              RunOrder: 1
-              RoleArn: !Sub "arn:aws:iam::${DevAccountId}:role/${TargetRoleName}"
+        # - Name: Deploy-ssm
+        #   Actions:
+        #     - Name: Deploy-ssm-DEV
+        #       ActionTypeId:
+        #         Category: Deploy
+        #         Owner: AWS
+        #         Provider: CloudFormation
+        #         Version: '1'
+        #       InputArtifacts:
+        #         - Name: SourceOut
+        #       Configuration:
+        #         ActionMode: CREATE_UPDATE
+        #         StackName: Deploy-ssm
+        #         TemplatePath: SourceOut::cfn/ssm_seed.yaml
+        #         TemplateConfiguration: !Sub "SourceOut::params/${DevAccountId}.json"
+        #         Capabilities: CAPABILITY_NAMED_IAM
+        #         RoleArn: !Sub "arn:aws:iam::${DevAccountId}:role/${TargetRoleName}"
+        #       Region: !Ref Region
+        #       RunOrder: 1
+        #       RoleArn: !Sub "arn:aws:iam::${DevAccountId}:role/${TargetRoleName}"
 
-        - Name: Deploy-VPC
-          Actions:
-            - Name: deploy-vpc
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Provider: CloudFormationStackSet
-                Version: "1"
-              InputArtifacts:
-                - Name: SourceOut
-              Configuration:
-                PermissionModel: SERVICE_MANAGED
-                CallAs: DELEGATED_ADMIN
-                StackSetName: deploy
-                MaxConcurrentPercentage: "50"
-                FailureTolerancePercentage: "100"
-                ConcurrencyMode: SOFT_FAILURE_TOLERANCE
-                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-                DeploymentTargets: "SourceOut::ous.csv"
-                TemplatePath: "SourceOut::cfn/stacksets/vpc.yaml"
-                Regions: !Ref Region
-              RunOrder: 1
+        # - Name: Deploy-VPC
+        #   Actions:
+        #     - Name: deploy-vpc
+        #       ActionTypeId:
+        #         Category: Deploy
+        #         Owner: AWS
+        #         Provider: CloudFormationStackSet
+        #         Version: "1"
+        #       InputArtifacts:
+        #         - Name: SourceOut
+        #       Configuration:
+        #         PermissionModel: SERVICE_MANAGED
+        #         CallAs: DELEGATED_ADMIN
+        #         StackSetName: deploy
+        #         MaxConcurrentPercentage: "50"
+        #         FailureTolerancePercentage: "100"
+        #         ConcurrencyMode: SOFT_FAILURE_TOLERANCE
+        #         Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+        #         DeploymentTargets: "SourceOut::ous.csv"
+        #         TemplatePath: "SourceOut::cfn/stacksets/vpc.yaml"
+        #         Regions: !Ref Region
+        #       RunOrder: 1
