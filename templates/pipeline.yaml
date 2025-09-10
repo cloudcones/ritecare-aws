@@ -30,13 +30,21 @@ Parameters:
 
   PipelineName:
     Type: String
-    Default: infra-pipeline
     Description: The name of the CodePipeline.
 
   Region:
     Type: String
     Default: us-east-2
     Description: The AWS Region/s where the templates will be deplyed.
+
+  TemplatesPath:
+    Type: String
+    Description: Path for the CloudFormation templates
+
+  ParametersPath:
+    Type: String
+    Description: Path for the CloudFormation parameters files
+
 
 Resources:
 
@@ -91,8 +99,8 @@ Resources:
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 DeploymentTargets: "SourceOut::ous.csv"
-                TemplatePath: "SourceOut::cfn/stacksets/cfn_deploy_role.yaml"
-                Parameters: "SourceOut::params/cfn_deploy_role.json"
+                TemplatePath: !Sub "SourceOut::${TemplatesPath}/cfn_deploy_role.yaml"
+                Parameters: !Sub "SourceOut::${ParametersPath}/cfn_deploy_role.json"
                 Regions: !Ref Region
               RunOrder: 1
 
