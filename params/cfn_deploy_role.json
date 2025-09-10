@@ -1,14 +1,14 @@
 [
   {
     "ParameterKey": "CodePipelineRoleArn",
-    "ParameterValue": "arn:aws:iam::134084021108:role/sharedservices-codepipeline-role"
+    "ParameterValue": "arn:aws:iam::936777225246:role/sharedservices-codepipeline-role"
   },
   {
     "ParameterKey": "CodePipelineArtifectsBucket",
-    "ParameterValue": "arn:aws:s3:::us-east-1-134084021108-codepipeline-artifacts"
+    "ParameterValue": "arn:aws:s3:::us-east-1-936777225246-codepipeline-artifacts"
   },
   {
     "ParameterKey": "CodePipelineArtifectsKMS",
-    "ParameterValue": "arn:aws:kms:us-east-1:134084021108:key/215a6402-b952-4dff-8784-487ac36f1568"
+    "ParameterValue": "arn:aws:kms:us-east-1:936777225246:key/05b4e49e-41fc-494c-8039-a57821fa76fc"
   }
 ]
