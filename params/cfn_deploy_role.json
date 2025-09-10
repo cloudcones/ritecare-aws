@@ -1,0 +1,14 @@
+[
+  {
+    "ParameterKey": "CodePipelineRoleArn",
+    "ParameterValue": "arn:aws:iam::134084021108:role/sharedservices-codepipeline-role"
+  },
+  {
+    "ParameterKey": "CodePipelineArtifectsBucket",
+    "ParameterValue": "arn:aws:s3:::us-east-1-134084021108-codepipeline-artifacts"
+  },
+  {
+    "ParameterKey": "CodePipelineArtifectsKMS",
+    "ParameterValue": "arn:aws:kms:us-east-1:134084021108:key/215a6402-b952-4dff-8784-487ac36f1568"
+  }
+]

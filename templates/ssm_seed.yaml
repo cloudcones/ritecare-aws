@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Per-account SSM parameters
+
+Parameters:
+  EnvName:
+    Type: String
+    Description: The name of the environment (e.g., Dev, Prod).
+    
+  VpcCidr:
+    Type: String
+    Description: CIDR block for the VPC.
+
+  PublicSubnet1Cidr:
+    Type: String
+    Description: CIDR block for the public subnet in Availability Zone 1.
+
+  PublicSubnet2Cidr:
+    Type: String
+    Description: CIDR block for the public subnet in Availability Zone 2.
+
+  PrivateSubnet1Cidr:
+    Type: String
+    Description: CIDR block for the private subnet in Availability Zone 1.
+
+  PrivateSubnet2Cidr:
+    Type: String
+    Description: CIDR block for the private subnet in Availability Zone 2.
+
+
+Resources:
+  EnvParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /params/env_name
+      Type: String
+      Value: !Ref EnvName
+
+  VpcCidrParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /params/vpc_cidr
+      Type: String
+      Value: !Ref VpcCidr
+
+  PublicSubnet1CidrParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /params/vpc_subnet_public1
+      Type: String
+      Value: !Ref PublicSubnet1Cidr
+
+  PublicSubnet2CidrParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /params/vpc_subnet_public2
+      Type: String
+      Value: !Ref PublicSubnet2Cidr
+
+  PrivateSubnet1CidrParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /params/vpc_subnet_private1
+      Type: String
+      Value: !Ref PrivateSubnet1Cidr
+
+  PrivateSubnet2CidrParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /params/vpc_subnet_private2
+      Type: String
+      Value: !Ref PrivateSubnet2Cidr

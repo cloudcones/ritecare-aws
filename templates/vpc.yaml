@@ -1,0 +1,205 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: This template will be used for all vpc related resources, including vpc, subnets, routetables, igw, vpc endpoints
+
+# Create resources
+Resources:
+# Build VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Sub '{{resolve:ssm:/ssm_seed/vpc_cidr}}'
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub '{{resolve:ssm:/ssm_seed/env}}-vpc'
+# Build internet gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: Internet Gateway
+# Attach internet gateway to the VPC
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref 'VPC'
+      InternetGatewayId: !Ref 'InternetGateway'
+
+# Build Public subnets
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Sub '{{resolve:ssm:/ssm_seed/vpc_subnet_public1}}'
+      AvailabilityZone: !Select [0, !GetAZs ]
+      Tags:
+        - Key: Name
+          Value: !Sub Public subnet 1a
+        - Key: Network
+          Value: Public
+      MapPublicIpOnLaunch: true
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Sub '{{resolve:ssm:/ssm_seed/vpc_subnet_public2}}'
+      AvailabilityZone: !Select [1, !GetAZs ]
+      Tags:
+        - Key: Name
+          Value: !Sub Public subnet 1b
+        - Key: Network
+          Value: Public
+      MapPublicIpOnLaunch: true
+
+# Build Private subnets
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Sub '{{resolve:ssm:/ssm_seed/vpc_subnet_private1}}'
+      AvailabilityZone: !Select [0, !GetAZs ]
+      Tags:
+        - Key: Name
+          Value: Private subnet 1a
+        - Key: Network
+          Value: Private
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Sub '{{resolve:ssm:/ssm_seed/vpc_subnet_private2}}'
+      AvailabilityZone: !Select [1, !GetAZs ]
+      Tags:
+        - Key: Name
+          Value: Private subnet 1b
+        - Key: Network
+          Value: Private
+
+#Build route tables for public subnets
+  PublicSubnetRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: Public Subnets 
+        - Key: Network
+          Value: Public
+
+  PublicSubnetRoute:
+    DependsOn: VPCGatewayAttachment
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref 'PublicSubnetRouteTable'
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref 'InternetGateway'
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref 'PublicSubnet1'
+      RouteTableId: !Ref 'PublicSubnetRouteTable'
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref 'PublicSubnet2'
+      RouteTableId: !Ref 'PublicSubnetRouteTable'
+
+# Build NAT gateway 
+  NatGEWEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+       - Key: Name
+         Value: NatGW-EIP'     
+
+  NatGateway:
+    DependsOn: VPCGatewayAttachment
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt 'NatGEWEIP.AllocationId'
+      SubnetId: !Ref 'PublicSubnet1'
+
+#Build route tables for private subnets
+  PrivateSubnetRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: Private Subnets 
+        - Key: Network
+          Value: Private
+
+  PrivateSubnetRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateSubnetRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref 'PrivateSubnet1'
+      RouteTableId: !Ref 'PrivateSubnetRouteTable'
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref 'PrivateSubnet2'
+      RouteTableId: !Ref 'PrivateSubnetRouteTable'
+
+#build S3 endpoint
+  S3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      RouteTableIds: 
+        - !Ref PublicSubnetRouteTable
+        - !Ref PrivateSubnetRouteTable
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+
+#Parameter store resouorces
+  VPCIDParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Sub /net/${VPC}/id
+      Value: !Ref VPC
+  VPCCIDRParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Sub /net/${VPC}/cidr
+      Value: !Sub '{{resolve:ssm:/ssm_seed/vpc_cidr}}' 
+  PublicSubnet1Param:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Sub /net/${VPC}/publicsubnet1/id
+      Value: !Ref PublicSubnet1
+  PublicSubnet2Param:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Sub /net/${VPC}/publicsubnet2/id
+      Value: !Ref PublicSubnet2
+  PrivateSubnet1Param:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Sub /net/${VPC}/privatesubnet1/id
+      Value: !Ref PrivateSubnet1
+  PrivateSubnet2Param:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Sub /net/${VPC}/privatesubnet2/id
+      Value: !Ref PrivateSubnet2

@@ -1,0 +1,249 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  This template sets up the foundational resources for CodePipeline in a shared services
+  account, including an S3 artifact bucket, a KMS key for encryption, and
+  IAM roles for CodePipeline and CodeBuild. It is designed to work with multi-account
+  deployments within an AWS Organization.
+
+Parameters:
+  ArtifactBucketName:
+    Type: String
+    Default: codepipeline-artifacts
+    Description: Base name for the S3 bucket where pipeline artifacts will be stored.
+  CodePipelineRoleName:
+    Type: String
+    Default: sharedservices-codepipeline-role
+    Description: Name for the IAM role that CodePipeline will assume.
+  CodeBuildRoleName:
+    Type: String
+    Default: sharedservices-codebuild-role
+    Description: Name for the IAM role that CodeBuild will assume.
+  GitHubConnectionArn:
+    Type: String
+    Description: ARN of your CodeStar GitHub connection.
+  OrgID:
+    Type: String
+    Description: The ID of your AWS Organization. This is used to restrict access to other accounts in the organization.
+
+Resources:
+  # S3 Bucket to store CodePipeline artifacts
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::Region}-${AWS::AccountId}-${ArtifactBucketName}"
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # Bucket policy to allow access from other accounts in the Organization
+  ArtifactBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ArtifactBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowOrg
+            Effect: Allow
+            Principal: "*"
+            Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+              - s3:PutObject
+            Resource: !Sub "${ArtifactBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrgID
+
+  # KMS Key to encrypt CodePipeline artifacts
+  ArtifactKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: Key for CodePipeline artifact bucket
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowRootAccount
+            Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+            Action: "kms:*"
+            Resource: "*"
+          - Sid: AllowOrg
+            Effect: Allow
+            Principal: "*"
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+            Resource: "*"
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrgID
+
+  ArtifactKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/codepipeline-artifact-key
+      TargetKeyId: !Ref ArtifactKey
+
+  # IAM Role for CodePipeline to assume
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref CodePipelineRoleName
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+                - codebuild.amazonaws.com
+            Action: sts:AssumeRole
+
+  # Policy for the CodePipeline IAM Role
+  CodePipelinePolicy:
+    Type: AWS::IAM::Policy
+    DependsOn:
+      - ArtifactBucket
+      - ArtifactBucketPolicy
+      - ArtifactKeyAlias
+    Properties:
+      PolicyName: CodePipelinePolicy
+      Roles:
+        - !Ref CodePipelineRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          # Permissions for the S3 artifact bucket
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+              - s3:PutObject
+            Resource: !Sub "${ArtifactBucket.Arn}/*"
+          # Permissions for the KMS key
+          - Effect: Allow
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+            Resource: !GetAtt ArtifactKey.Arn
+          # Permissions for CloudFormation StackSet deployments
+          - Effect: Allow
+            Action: "cloudformation:*"
+            Resource: "*"
+          # Permissions for the CodeStar GitHub connection
+          - Effect: Allow
+            Action: codestar-connections:UseConnection
+            Resource: !Ref GitHubConnectionArn
+          # Permission to assume roles in other accounts
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource: "arn:aws:iam::*:role/*"
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrgID
+          # Permission to list delegated administrators for service-managed StackSets
+          - Effect: Allow
+            Action:
+              - organizations:ListDelegatedAdministrators
+            Resource: "*"
+
+  # IAM Role for CodeBuild to assume
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref CodeBuildRoleName
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+
+  # Policy for the CodeBuild IAM Role
+  CodeBuildPolicy:
+    Type: AWS::IAM::Policy
+    DependsOn:
+      - ArtifactBucket
+      - ArtifactBucketPolicy
+      - ArtifactKeyAlias
+    Properties:
+      PolicyName: CodeBuildPolicy
+      Roles:
+        - !Ref CodeBuildRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          # Permissions for CloudWatch Logs
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: "*"
+          # Permissions for CloudFormation deployments
+          - Effect: Allow
+            Action: "cloudformation:*"
+            Resource: "*"
+          # Permissions for the S3 artifact bucket
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+              - s3:PutObject
+            Resource: !Sub "${ArtifactBucket.Arn}/*"
+          # Permissions for the KMS key
+          - Effect: Allow
+            Action:
+              - kms:Decrypt
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+            Resource: !GetAtt ArtifactKey.Arn
+
+  # SSM Parameters to export
+  SSMArtifactBucketName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /s3/artifact-bucket-name
+      Type: String
+      Value: !Ref ArtifactBucket
+
+  SSMCodePipelineRoleArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /iam/codepipeline-role-arn
+      Type: String
+      Value: !GetAtt CodePipelineRole.Arn
+
+  SSMCodeBuildRoleArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /iam/codebuild-role-arn
+      Type: String
+      Value: !GetAtt CodeBuildRole.Arn
+
+  SSMGitHubConnectionArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /codepipeline/github-connection-arn
+      Type: String
+      Value: !Ref GitHubConnectionArn
+
+  SSMArtifactKeyArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /kms/artifact-key-arn
+      Type: String
+      Value: !GetAtt ArtifactKey.Arn

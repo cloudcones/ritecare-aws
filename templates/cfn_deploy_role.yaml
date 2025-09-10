@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: IAM Role for CodePipeline to deploy stacks in a target account.
+
+Parameters:
+  CodePipelineRoleArn:
+    Type: String
+    Description: ARN of the CodePipeline role from the shared services account.
+  CodePipelineRoleName:
+    Type: String
+    Default: sharedservices-codepipeline-role
+    Description: IAM Role name of CodePipeline in shared services.
+  TargetRoleName:
+    Type: String
+    Default: cfn-deploy
+    Description: Name of the role to create in the target account.
+  CodePipelineArtifectsBucket:
+    Type: String
+    Description: ARN of the S3 bucket for CodePipeline artifacts in the shared services account.
+  CodePipelineArtifectsKMS:
+    Type: String
+    Description: ARN of the KMS key for CodePipeline artifacts in the shared services account.
+
+Resources:
+  CfnDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref TargetRoleName
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Ref CodePipelineRoleArn
+            Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action: sts:AssumeRole
+
+  CfnDeployPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: CfnDeployPolicy
+      Roles:
+        - !Ref CfnDeployRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: CloudFormationFull
+            Effect: Allow
+            Action: "cloudformation:*"
+            Resource: "*"
+          - Sid: AllowPassRole
+            Effect: Allow
+            Action: "iam:PassRole"
+            Resource: "*"
+          - Sid: AllowArtifectsS3
+            Effect: Allow
+            Action:
+              - s3:Get*
+              - s3:Put*
+              - s3:ListBucket
+            Resource: !Sub "${CodePipelineArtifectsBucket}/*"
+          - Sid: AllowArtifectsKMS
+            Effect: Allow
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+            Resource: !Ref CodePipelineArtifectsKMS
+          - Sid: AllowSSM
+            Effect: Allow
+            Action:
+              - ssm:*
+            Resource: "*"
