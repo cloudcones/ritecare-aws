@@ -178,62 +178,62 @@ Resources:
       Name: /net/vpc/name
       Value: !Sub '{{resolve:ssm:/params/env_name}}-vpc'
 
-  VPCIDParam:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Type: String
-      Name: !Sub
-        - "/net/${VpcName}/id"
-        - { VpcName: !Ref VpcNameValueParam }
-      Value: !Ref VPC
-    DependsOn: VpcNameValueParam
+  # VPCIDParam:
+  #   Type: AWS::SSM::Parameter
+  #   Properties:
+  #     Type: String
+  #     Name: !Sub
+  #       - "/net/${VpcName}/id"
+  #       - { VpcName: !Ref VpcNameValueParam }
+  #     Value: !Ref VPC
+  #   DependsOn: VpcNameValueParam
 
-  VPCCIDRParam:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Type: String
-      Name: !Sub
-        - "/net/${VpcName}/cidr"
-        - { VpcName: !Ref VpcNameValueParam }
-      Value: '{{resolve:ssm:/params/vpc_cidr}}'
-    DependsOn: VpcNameValueParam
+  # VPCCIDRParam:
+  #   Type: AWS::SSM::Parameter
+  #   Properties:
+  #     Type: String
+  #     Name: !Sub
+  #       - "/net/${VpcName}/cidr"
+  #       - { VpcName: !Ref VpcNameValueParam }
+  #     Value: '{{resolve:ssm:/params/vpc_cidr}}'
+  #   DependsOn: VpcNameValueParam
 
-  PublicSubnet1Param:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Type: String
-      Name: !Sub
-        - "/net/${VpcName}/subnets/publicsubnet1/id"
-        - { VpcName: !Ref VpcNameValueParam }
-      Value: !Ref PublicSubnet1
-    DependsOn: VpcNameValueParam
+  # PublicSubnet1Param:
+  #   Type: AWS::SSM::Parameter
+  #   Properties:
+  #     Type: String
+  #     Name: !Sub
+  #       - "/net/${VpcName}/subnets/publicsubnet1/id"
+  #       - { VpcName: !Ref VpcNameValueParam }
+  #     Value: !Ref PublicSubnet1
+  #   DependsOn: VpcNameValueParam
 
-  PublicSubnet2Param:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Type: String
-      Name: !Sub
-        - "/net/${VpcName}/subnets/publicsubnet2/id"
-        - { VpcName: !Ref VpcNameValueParam }
-      Value: !Ref PublicSubnet2
-    DependsOn: VpcNameValueParam
+  # PublicSubnet2Param:
+  #   Type: AWS::SSM::Parameter
+  #   Properties:
+  #     Type: String
+  #     Name: !Sub
+  #       - "/net/${VpcName}/subnets/publicsubnet2/id"
+  #       - { VpcName: !Ref VpcNameValueParam }
+  #     Value: !Ref PublicSubnet2
+  #   DependsOn: VpcNameValueParam
 
-  PrivateSubnet1Param:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Type: String
-      Name: !Sub
-        - "/net/${VpcName}/subnets/privatesubnet1/id"
-        - { VpcName: !Ref VpcNameValueParam }
-      Value: !Ref PrivateSubnet1
-    DependsOn: VpcNameValueParam
+  # PrivateSubnet1Param:
+  #   Type: AWS::SSM::Parameter
+  #   Properties:
+  #     Type: String
+  #     Name: !Sub
+  #       - "/net/${VpcName}/subnets/privatesubnet1/id"
+  #       - { VpcName: !Ref VpcNameValueParam }
+  #     Value: !Ref PrivateSubnet1
+  #   DependsOn: VpcNameValueParam
 
-  PrivateSubnet2Param:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Type: String
-      Name: !Sub
-        - "/net/${VpcName}/subnets/privatesubnet2/id"
-        - { VpcName: !Ref VpcNameValueParam }
-      Value: !Ref PrivateSubnet2
-    DependsOn: VpcNameValueParam
+  # PrivateSubnet2Param:
+  #   Type: AWS::SSM::Parameter
+  #   Properties:
+  #     Type: String
+  #     Name: !Sub
+  #       - "/net/${VpcName}/subnets/privatesubnet2/id"
+  #       - { VpcName: !Ref VpcNameValueParam }
+  #     Value: !Ref PrivateSubnet2
+  #   DependsOn: VpcNameValueParam
