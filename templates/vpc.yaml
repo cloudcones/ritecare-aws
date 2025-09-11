@@ -7,12 +7,13 @@ Resources:
   VPC:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: !Sub '{{resolve:ssm:/ssm_seed/vpc_cidr}}'
+      CidrBlock: '{{resolve:ssm:/params/vpc_cidr}}'
       EnableDnsSupport: true
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: !Sub '{{resolve:ssm:/ssm_seed/env}}-vpc'
+          Value: !Sub '{{resolve:ssm:/params/env}}-vpc'
+
 # Build internet gateway
   InternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -20,6 +21,7 @@ Resources:
       Tags:
         - Key: Name
           Value: Internet Gateway
+
 # Attach internet gateway to the VPC
   VPCGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -32,7 +34,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !Sub '{{resolve:ssm:/ssm_seed/vpc_subnet_public1}}'
+      CidrBlock: '{{resolve:ssm:/params/vpc_subnet_public1}}'
       AvailabilityZone: !Select [0, !GetAZs ]
       Tags:
         - Key: Name
@@ -45,7 +47,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !Sub '{{resolve:ssm:/ssm_seed/vpc_subnet_public2}}'
+      CidrBlock: '{{resolve:ssm:/params/vpc_subnet_public2}}'
       AvailabilityZone: !Select [1, !GetAZs ]
       Tags:
         - Key: Name
@@ -59,7 +61,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !Sub '{{resolve:ssm:/ssm_seed/vpc_subnet_private1}}'
+      CidrBlock: '{{resolve:ssm:/params/vpc_subnet_private1}}'
       AvailabilityZone: !Select [0, !GetAZs ]
       Tags:
         - Key: Name
@@ -71,7 +73,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !Sub '{{resolve:ssm:/ssm_seed/vpc_subnet_private2}}'
+      CidrBlock: '{{resolve:ssm:/params/vpc_subnet_private2}}'
       AvailabilityZone: !Select [1, !GetAZs ]
       Tags:
         - Key: Name
@@ -79,14 +81,14 @@ Resources:
         - Key: Network
           Value: Private
 
-#Build route tables for public subnets
+# Build route tables for public subnets
   PublicSubnetRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: Public Subnets 
+          Value: Public Subnets
         - Key: Network
           Value: Public
 
@@ -110,14 +112,14 @@ Resources:
       SubnetId: !Ref 'PublicSubnet2'
       RouteTableId: !Ref 'PublicSubnetRouteTable'
 
-# Build NAT gateway 
+# Build NAT gateway
   NatGEWEIP:
     Type: AWS::EC2::EIP
     Properties:
       Domain: vpc
       Tags:
        - Key: Name
-         Value: NatGW-EIP'     
+         Value: NatGW-EIP
 
   NatGateway:
     DependsOn: VPCGatewayAttachment
@@ -126,18 +128,20 @@ Resources:
       AllocationId: !GetAtt 'NatGEWEIP.AllocationId'
       SubnetId: !Ref 'PublicSubnet1'
 
-#Build route tables for private subnets
+# Build route tables for private subnets
   PrivateSubnetRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
       Tags:
         - Key: Name
-          Value: Private Subnets 
+          Value: Private Subnets
         - Key: Network
           Value: Private
 
   PrivateSubnetRoute:
+    # Corrected: Added a DependsOn to ensure NatGateway exists.
+    DependsOn: NatGateway
     Type: AWS::EC2::Route
     Properties:
       RouteTableId: !Ref PrivateSubnetRouteTable
@@ -161,45 +165,75 @@ Resources:
     Type: AWS::EC2::VPCEndpoint
     Properties:
       VpcId: !Ref VPC
-      RouteTableIds: 
+      RouteTableIds:
         - !Ref PublicSubnetRouteTable
         - !Ref PrivateSubnetRouteTable
       ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
 
-#Parameter store resouorces
+#Parameter store resources
+  VpcNameValueParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: /net/vpc/name
+      Value: !Sub '{{resolve:ssm:/params/env}}-vpc'
+
   VPCIDParam:
     Type: AWS::SSM::Parameter
     Properties:
       Type: String
-      Name: !Sub /net/${VPC}/id
+      Name: !Sub
+        - "/net/${VpcName}/id"
+        - { VpcName: !Ref VpcNameValueParam }
       Value: !Ref VPC
+    DependsOn: VpcNameValueParam
+
   VPCCIDRParam:
     Type: AWS::SSM::Parameter
     Properties:
       Type: String
-      Name: !Sub /net/${VPC}/cidr
-      Value: !Sub '{{resolve:ssm:/ssm_seed/vpc_cidr}}' 
+      Name: !Sub
+        - "/net/${VpcName}/cidr"
+        - { VpcName: !Ref VpcNameValueParam }
+      Value: '{{resolve:ssm:/params/vpc_cidr}}'
+    DependsOn: VpcNameValueParam
+
   PublicSubnet1Param:
     Type: AWS::SSM::Parameter
     Properties:
       Type: String
-      Name: !Sub /net/${VPC}/publicsubnet1/id
+      Name: !Sub
+        - "/net/${VpcName}/subnets/publicsubnet1/id"
+        - { VpcName: !Ref VpcNameValueParam }
       Value: !Ref PublicSubnet1
+    DependsOn: VpcNameValueParam
+
   PublicSubnet2Param:
     Type: AWS::SSM::Parameter
     Properties:
       Type: String
-      Name: !Sub /net/${VPC}/publicsubnet2/id
+      Name: !Sub
+        - "/net/${VpcName}/subnets/publicsubnet2/id"
+        - { VpcName: !Ref VpcNameValueParam }
       Value: !Ref PublicSubnet2
+    DependsOn: VpcNameValueParam
+
   PrivateSubnet1Param:
     Type: AWS::SSM::Parameter
     Properties:
       Type: String
-      Name: !Sub /net/${VPC}/privatesubnet1/id
+      Name: !Sub
+        - "/net/${VpcName}/subnets/privatesubnet1/id"
+        - { VpcName: !Ref VpcNameValueParam }
       Value: !Ref PrivateSubnet1
+    DependsOn: VpcNameValueParam
+
   PrivateSubnet2Param:
     Type: AWS::SSM::Parameter
     Properties:
       Type: String
-      Name: !Sub /net/${VPC}/privatesubnet2/id
+      Name: !Sub
+        - "/net/${VpcName}/subnets/privatesubnet2/id"
+        - { VpcName: !Ref VpcNameValueParam }
       Value: !Ref PrivateSubnet2
+    DependsOn: VpcNameValueParam

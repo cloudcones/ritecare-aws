@@ -127,24 +127,24 @@ Resources:
               RoleArn: !Sub "arn:aws:iam::${DevAccountId}:role/${TargetRoleName}"
 
         # - Name: Deploy-VPC
-        #   Actions:
-        #     - Name: deploy-vpc
-        #       ActionTypeId:
-        #         Category: Deploy
-        #         Owner: AWS
-        #         Provider: CloudFormationStackSet
-        #         Version: "1"
-        #       InputArtifacts:
-        #         - Name: SourceOut
-        #       Configuration:
-        #         PermissionModel: SERVICE_MANAGED
-        #         CallAs: DELEGATED_ADMIN
-        #         StackSetName: deploy
-        #         MaxConcurrentPercentage: "50"
-        #         FailureTolerancePercentage: "100"
-        #         ConcurrencyMode: SOFT_FAILURE_TOLERANCE
-        #         Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-        #         DeploymentTargets: "SourceOut::ous.csv"
-        #         TemplatePath: "SourceOut::cfn/stacksets/vpc.yaml"
-        #         Regions: !Ref Region
-        #       RunOrder: 1
+          Actions:
+            - Name: deploy-vpc
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormationStackSet
+                Version: "1"
+              InputArtifacts:
+                - Name: SourceOut
+              Configuration:
+                PermissionModel: SERVICE_MANAGED
+                CallAs: DELEGATED_ADMIN
+                StackSetName: deploy
+                MaxConcurrentPercentage: "50"
+                FailureTolerancePercentage: "100"
+                ConcurrencyMode: SOFT_FAILURE_TOLERANCE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                DeploymentTargets: "SourceOut::ous.csv"
+                TemplatePath: !Sub "SourceOut::${TemplatesPath}/vpc.yaml"
+                Regions: !Ref Region
+              RunOrder: 1
