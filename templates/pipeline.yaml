@@ -126,7 +126,8 @@ Resources:
               RunOrder: 1
               RoleArn: !Sub "arn:aws:iam::${DevAccountId}:role/${TargetRoleName}"
 
-        # - Name: Deploy-VPC
+        # Deploy VPC stackset
+        - Name: Deploy-VPC
           Actions:
             - Name: deploy-vpc
               ActionTypeId:
@@ -139,7 +140,7 @@ Resources:
               Configuration:
                 PermissionModel: SERVICE_MANAGED
                 CallAs: DELEGATED_ADMIN
-                StackSetName: deploy
+                StackSetName: deploy-vpc
                 MaxConcurrentPercentage: "50"
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
