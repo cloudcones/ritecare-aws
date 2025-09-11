@@ -12,7 +12,7 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: !Sub '{{resolve:ssm:/params/env}}-vpc'
+          Value: !Sub '{{resolve:ssm:/params/env_name}}-vpc'
 
 # Build internet gateway
   InternetGateway:
@@ -176,7 +176,7 @@ Resources:
     Properties:
       Type: String
       Name: /net/vpc/name
-      Value: !Sub '{{resolve:ssm:/params/env}}-vpc'
+      Value: !Sub '{{resolve:ssm:/params/env_name}}-vpc'
 
   VPCIDParam:
     Type: AWS::SSM::Parameter
