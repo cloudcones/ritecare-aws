@@ -19,6 +19,10 @@ Parameters:
     Type: String
     Description: The AWS Account ID for the dev environment.
 
+  TestAccountId:
+    Type: String
+    Description: The AWS Account ID for the  environment.
+
   ProdAccountId:
     Type: String
     Description: The AWS Account ID for the prod environment.
@@ -80,33 +84,34 @@ Resources:
                 - Name: SourceOut
 
         # Deploys the common IAM role that CloudFormation will assume in each target account.
-        - Name: Deploy-cfn-deploy-role        	
-          Actions:
-            - Name: cfn-deploy-role
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Provider: CloudFormationStackSet
-                Version: 1
-              InputArtifacts:
-                - Name: SourceOut
-              Configuration:
-                PermissionModel: SERVICE_MANAGED
-                CallAs: DELEGATED_ADMIN
-                StackSetName: cfn-deploy-role
-                MaxConcurrentPercentage: "50"
-                FailureTolerancePercentage: "100"
-                ConcurrencyMode: SOFT_FAILURE_TOLERANCE
-                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-                DeploymentTargets: "SourceOut::ous.csv"
-                TemplatePath: !Sub "SourceOut::${TemplatesPath}/cfn_deploy_role.yaml"
-                Parameters: !Sub "SourceOut::${ParametersPath}/cfn_deploy_role.json"
-                Regions: !Ref Region
-              RunOrder: 1
+        # - Name: Deploy-cfn-deploy-role        	
+        #   Actions:
+        #     - Name: cfn-deploy-role
+        #       ActionTypeId:
+        #         Category: Deploy
+        #         Owner: AWS
+        #         Provider: CloudFormationStackSet
+        #         Version: 1
+        #       InputArtifacts:
+        #         - Name: SourceOut
+        #       Configuration:
+        #         PermissionModel: SERVICE_MANAGED
+        #         CallAs: DELEGATED_ADMIN
+        #         StackSetName: cfn-deploy-role
+        #         MaxConcurrentPercentage: "50"
+        #         FailureTolerancePercentage: "100"
+        #         ConcurrencyMode: SOFT_FAILURE_TOLERANCE
+        #         Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+        #         DeploymentTargets: "SourceOut::ous.csv"
+        #         TemplatePath: !Sub "SourceOut::${TemplatesPath}/cfn_deploy_role.yaml"
+        #         Parameters: !Sub "SourceOut::${ParametersPath}/cfn_deploy_role.json"
+        #         Regions: !Ref Region
+        #       RunOrder: 1
 
         # Deploys account specific parameters as SSM parameters
         - Name: Deploy-ssm
           Actions:
+
             - Name: Deploy-ssm-DEV
               ActionTypeId:
                 Category: Deploy
@@ -125,6 +130,44 @@ Resources:
               Region: !Ref Region
               RunOrder: 1
               RoleArn: !Sub "arn:aws:iam::${DevAccountId}:role/${TargetRoleName}"
+
+            - Name: Deploy-ssm-TEST
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: '1'
+              InputArtifacts:
+                - Name: SourceOut
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                StackName: Deploy-ssm
+                TemplatePath: !Sub SourceOut::${TemplatesPath}/ssm_seed.yaml
+                TemplateConfiguration: !Sub "SourceOut::${ParametersPath}/${TestAccountId}.json"
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn: !Sub "arn:aws:iam::${TestAccountId}:role/${TargetRoleName}"
+              Region: !Ref Region
+              RunOrder: 1
+              RoleArn: !Sub "arn:aws:iam::${TestAccountId}:role/${TargetRoleName}"
+
+            - Name: Deploy-ssm-PROD
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: '1'
+              InputArtifacts:
+                - Name: SourceOut
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                StackName: Deploy-ssm
+                TemplatePath: !Sub SourceOut::${TemplatesPath}/ssm_seed.yaml
+                TemplateConfiguration: !Sub "SourceOut::${ParametersPath}/${ProdAccountId}.json"
+                Capabilities: CAPABILITY_NAMED_IAM
+                RoleArn: !Sub "arn:aws:iam::${ProdAccountId}:role/${TargetRoleName}"
+              Region: !Ref Region
+              RunOrder: 1
+              RoleArn: !Sub "arn:aws:iam::${ProdAccountId}:role/${TargetRoleName}"
 
         # Deploy VPC stackset
         - Name: Deploy-VPC

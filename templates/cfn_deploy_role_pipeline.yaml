@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Deploys the IAM role that CloudFormation StackSets will assume in target accounts.
+
+Parameters:
+  FullRepositoryId:
+    Type: String
+    Description: GitHub repository in the format owner/repo.
+
+  BranchName:
+    Type: String
+    Default: main
+    Description: The branch to use for the pipeline source.
+
+  TargetRoleName:
+    Type: String
+    Default: cfn-deploy
+    Description: Name of the role in the target accounts
+
+  PipelineName:
+    Type: String
+    Description: The name of the CodePipeline.
+
+  Region:
+    Type: String
+    Default: us-east-2
+    Description: The AWS Region/s where the templates will be deplyed.
+
+  TemplatesPath:
+    Type: String
+    Description: Path for the CloudFormation templates
+
+  ParametersPath:
+    Type: String
+    Description: Path for the CloudFormation parameters files
+
+
+Resources:
+
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: !Ref PipelineName
+      RoleArn: !Sub "{{resolve:ssm:/iam/codepipeline-role-arn}}"
+
+      ArtifactStore:
+        Type: S3
+        Location: !Sub "{{resolve:ssm:/s3/artifact-bucket-name}}"
+        EncryptionKey:
+          Id: !Sub "{{resolve:ssm:/kms/artifact-key-arn}}"
+          Type: KMS
+
+      Stages:
+        # Fetches the source code from GitHub via CodeStar Connections.
+        - Name: Source
+          Actions:
+            - Name: GitHubSource
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: CodeStarSourceConnection
+                Version: 1
+              Configuration:
+                ConnectionArn: !Sub "{{resolve:ssm:/codepipeline/github-connection-arn}}"
+                FullRepositoryId: !Ref FullRepositoryId
+                BranchName: !Ref BranchName
+                OutputArtifactFormat: CODE_ZIP
+              OutputArtifacts:
+                - Name: SourceOut
+
+        # Deploys the common IAM role that CloudFormation will assume in each target account.
+        - Name: Deploy-cfn-deploy-role        	
+          Actions:
+            - Name: cfn-deploy-role
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormationStackSet
+                Version: 1
+              InputArtifacts:
+                - Name: SourceOut
+              Configuration:
+                PermissionModel: SERVICE_MANAGED
+                CallAs: DELEGATED_ADMIN
+                StackSetName: cfn-deploy-role
+                MaxConcurrentPercentage: "50"
+                FailureTolerancePercentage: "100"
+                ConcurrencyMode: SOFT_FAILURE_TOLERANCE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                DeploymentTargets: "SourceOut::ous.csv"
+                TemplatePath: !Sub "SourceOut::${TemplatesPath}/cfn_deploy_role.yaml"
+                Parameters: !Sub "SourceOut::${ParametersPath}/cfn_deploy_role.json"
+                Regions: !Ref Region
+              RunOrder: 1
