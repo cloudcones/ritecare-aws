@@ -86,7 +86,7 @@ Resources:
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-                DeploymentTargets: "SourceOut::ous.csv"
+                DeploymentTargets: "SourceOut::workloads_ou.csv"
                 TemplatePath: !Sub "SourceOut::${TemplatesPath}/cfn_deploy_role.yaml"
                 Parameters: !Sub "SourceOut::${ParametersPath}/cfn_deploy_role.json"
                 Regions: !Ref Region
