@@ -188,12 +188,11 @@ Resources:
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-                DeploymentTargets: !Sub |
-                  {
-                    "Accounts": ["${ProdAccountId}"],
-                    "OrganizationalUnitIds": "SourceOut::workloads_ou.csv",
-                    "AccountFilterType": "UNION"
-                  }
+                DeploymentTargets:
+                    Accounts: 
+                      - !Ref ProdAccountId
+                    OrganizationalUnitIds: "SourceOut::workloads_ou.csv"
+                    AccountFilterType: "INTERSECTION"
                 TemplatePath: !Sub "SourceOut::${TemplatesPath}/ec2.yaml"
                 Regions: !Ref Region
               RunOrder: 1
@@ -218,7 +217,7 @@ Resources:
                   {
                     "Accounts": ["${ProdAccountId}"],
                     "OrganizationalUnitIds": "SourceOut::workloads_ou.csv",
-                    "AccountFilterType": "UNION"
+                    "AccountFilterType": "INTERSECTION"
                   }
                 TemplatePath: !Sub "SourceOut::${TemplatesPath}/rds.yaml"
                 Regions: !Ref Region
