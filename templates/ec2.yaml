@@ -1,0 +1,17 @@
+  Resources:
+
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: EC2 Security Group
+      VpcId: '/net/{{resolve:ssm:/params/env_name}}-vpc/id'
+      Tags:
+        - Key: Name
+          Value: "ec2-sg"
+          
+  SGIDParam+:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ec2/ec2-securitygroup/id
+      Value: !GetAtt EC2SecurityGroup.GroupId
+      Type: String

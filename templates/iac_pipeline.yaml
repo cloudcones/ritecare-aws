@@ -83,31 +83,6 @@ Resources:
               OutputArtifacts:
                 - Name: SourceOut
 
-        # Deploys the common IAM role that CloudFormation will assume in each target account.
-        # - Name: Deploy-cfn-deploy-role        	
-        #   Actions:
-        #     - Name: cfn-deploy-role
-        #       ActionTypeId:
-        #         Category: Deploy
-        #         Owner: AWS
-        #         Provider: CloudFormationStackSet
-        #         Version: 1
-        #       InputArtifacts:
-        #         - Name: SourceOut
-        #       Configuration:
-        #         PermissionModel: SERVICE_MANAGED
-        #         CallAs: DELEGATED_ADMIN
-        #         StackSetName: cfn-deploy-role
-        #         MaxConcurrentPercentage: "50"
-        #         FailureTolerancePercentage: "100"
-        #         ConcurrencyMode: SOFT_FAILURE_TOLERANCE
-        #         Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-        #         DeploymentTargets: "SourceOut::ous.csv"
-        #         TemplatePath: !Sub "SourceOut::${TemplatesPath}/cfn_deploy_role.yaml"
-        #         Parameters: !Sub "SourceOut::${ParametersPath}/cfn_deploy_role.json"
-        #         Regions: !Ref Region
-        #       RunOrder: 1
-
         # Deploys account specific parameters as SSM parameters
         - Name: Deploy-ssm
           Actions:
@@ -188,7 +163,36 @@ Resources:
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-                DeploymentTargets: "SourceOut::ous.csv"
+                DeploymentTargets: "SourceOut::workloads_ou.csv"
                 TemplatePath: !Sub "SourceOut::${TemplatesPath}/vpc.yaml"
+                Regions: !Ref Region
+              RunOrder: 1
+
+        # Deploy RDS stackset
+        - Name: Deploy-RDS
+          Actions:
+            - Name: deploy-rds
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormationStackSet
+                Version: "1"
+              InputArtifacts:
+                - Name: SourceOut
+              Configuration:
+                PermissionModel: SERVICE_MANAGED
+                CallAs: DELEGATED_ADMIN
+                StackSetName: deploy-rds
+                MaxConcurrentPercentage: "50"
+                FailureTolerancePercentage: "100"
+                ConcurrencyMode: SOFT_FAILURE_TOLERANCE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                DeploymentTargets: !Sub |
+                  {
+                    "Accounts": ["${ProdAccountId}"],
+                    "OrganizationalUnitIds": "SourceOut::workloads_ou.csv",
+                    "AccountFilterType": "UNION"
+                  }
+                TemplatePath: !Sub "SourceOut::${TemplatesPath}/rds.yaml"
                 Regions: !Ref Region
               RunOrder: 1
