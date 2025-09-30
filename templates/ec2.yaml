@@ -9,7 +9,7 @@ Resources:
         - Key: Name
           Value: "ec2-sg"
           
-  SGIDParam+:
+  SGIDParam:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /ec2/ec2-securitygroup/id
