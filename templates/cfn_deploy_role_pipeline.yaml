@@ -33,6 +33,8 @@ Parameters:
     Type: String
     Description: Path for the CloudFormation parameters files
 
+  WorkloadsOU:
+    Type: String
 
 Resources:
 
@@ -86,7 +88,7 @@ Resources:
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-                DeploymentTargets: "SourceOut::workloads_ou.csv"
+                DeploymentTargets: !Ref WorkloadsOU
                 TemplatePath: !Sub "SourceOut::${TemplatesPath}/cfn_deploy_role.yaml"
                 Parameters: !Sub "SourceOut::${ParametersPath}/cfn_deploy_role.json"
                 Regions: !Ref Region
