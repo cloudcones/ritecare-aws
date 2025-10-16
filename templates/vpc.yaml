@@ -171,39 +171,46 @@ Resources:
       ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
 
 #Parameter store resources
+  VpcNameValueParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: /net/vpc/name
+      Value: !Sub '{{resolve:ssm:/params/env_name}}-vpc'
+
   VPCIDParam:
     Type: AWS::SSM::Parameter
     Properties:
       Type: String
-      Name: !Sub '/net/vpc/id'
+      Name: !Sub '/net/{{resolve:ssm:/params/env_name}}-vpc/id'
       Value: !Ref VPC
 
   VPCCIDRParam:
     Type: AWS::SSM::Parameter
     Properties:
       Type: String
-      Name: !Sub '/net/vpc/cidr'
+      Name: !Sub '/net/{{resolve:ssm:/params/env_name}}-vpc/cidr'
       Value: !Sub '{{resolve:ssm:/params/vpc_cidr}}'
 
   PublicSubnet1Param:
     Type: AWS::SSM::Parameter
     Properties:
       Type: String
-      Name: !Sub '/net/subnets/publicsubnet1/id'
+      Name: !Sub '/net/{{resolve:ssm:/params/env_name}}-vpc/subnets/publicsubnet1/id'
       Value: !Ref PublicSubnet1
 
   PublicSubnet2Param:
     Type: AWS::SSM::Parameter
     Properties:
       Type: String
-      Name: !Sub '/net/subnets/publicsubnet2/id'
+      Name: !Sub '/net/{{resolve:ssm:/params/env_name}}-vpc/subnets/publicsubnet2/id'
       Value: !Ref PublicSubnet2
 
   PrivateSubnet1Param:
     Type: AWS::SSM::Parameter
     Properties:
       Type: String
-      Name: !Sub '/net/subnets/privatesubnet1/id'
+      Name: !Sub '/net/{{resolve:ssm:/params/env_name}}-vpc/subnets/privatesubnet1/id'
       Value: !Ref PrivateSubnet1
 
   PrivateSubnet2Param:
