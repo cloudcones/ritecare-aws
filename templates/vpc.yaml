@@ -81,6 +81,27 @@ Resources:
         - Key: Network
           Value: Private
 
+# Build DB subnets
+  DBSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: '{{resolve:ssm:/params/vpc_subnet_db1}}'
+      AvailabilityZone: !Select [0, !GetAZs ]
+      Tags:
+        - Key: Name
+          Value: DB subnet 1a
+
+  DBSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: '{{resolve:ssm:/params/vpc_subnet_db2}}'
+      AvailabilityZone: !Select [1, !GetAZs ]
+      Tags:
+        - Key: Name
+          Value: DB subnet 1b
+
 # Build route tables for public subnets
   PublicSubnetRouteTable:
     Type: AWS::EC2::RouteTable
@@ -139,8 +160,15 @@ Resources:
         - Key: Network
           Value: Private
 
+  DBSubnetRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: DB Subnets
+
   PrivateSubnetRoute:
-    # Corrected: Added a DependsOn to ensure NatGateway exists.
     DependsOn: NatGateway
     Type: AWS::EC2::Route
     Properties:
@@ -159,6 +187,18 @@ Resources:
     Properties:
       SubnetId: !Ref 'PrivateSubnet2'
       RouteTableId: !Ref 'PrivateSubnetRouteTable'
+
+  DBSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref 'DBSubnet1'
+      RouteTableId: !Ref 'DBSubnetRouteTable'
+
+  DBSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref 'DBSubnet2'
+      RouteTableId: !Ref 'DBSubnetRouteTable'
 
 #build S3 endpoint
   S3Endpoint:
@@ -212,3 +252,17 @@ Resources:
       Type: String
       Name:  !Sub '/net/subnets/privatesubnet2/id'
       Value: !Ref PrivateSubnet2
+
+  DBSubnet1Param:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Sub '/net/subnets/dbsubnet1/id'
+      Value: !Ref DBSubnet1
+
+  DBSubnet2Param:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name:  !Sub '/net/subnets/dbsubnet2/id'
+      Value: !Ref DBSubnet2

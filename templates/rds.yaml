@@ -1,206 +1,123 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Description: Aurora PostgreSQL cluster with 2 instances + Secrets Manager creds
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  CloudFormation template to create an Amazon Aurora PostgreSQL Serverless v2 cluster
+  with automatic scaling capabilities. 
 
-Parameters:
+Mappings:
+  AccountIDToEnvironment:
+    "410859982962": # Replace with your actual Dev Account ID
+      Environment: "dev"
+    "109648734102": # Replace with your actual Prod Account ID
+      Environment: "test"
+    "981425614813": # Replace with your actual QA Account ID
+      Environment: "prod"
 
-  EngineVersion:
-    Type: String
-    Default: '16.3'
-    Description: Aurora PostgreSQL engine version
-  InstanceClass:
-    Type: String
-    Default: db.r6g.large
-    Description: DB instance class for writer/reader
-  BackupRetentionDays:
-    Type: Number
-    Default: 7
-    MinValue: 1
-    MaxValue: 35
-  Port:
-    Type: Number
-    Default: 5432
-  PreferredMaintenanceWindow:
-    Type: String
-    Default: Sun:06:00-Sun:07:00
-  PreferredBackupWindow:
-    Type: String
-    Default: 07:00-08:00
-  PerformanceInsightsEnabled:
-    Type: String
-    AllowedValues: ['true', 'false']
-    Default: 'true'
-  DeletionProtection:
-    Type: String
-    AllowedValues: ['true', 'false']
-    Default: 'true'
-  ReplicaCount:
-    Type: Number
-    Default: 1
-    MinValue: 1
-    MaxValue: 15
-    Description: Number of reader instances in addition to the writer
-
-Conditions:
-  EnablePI: !Equals [!Ref PerformanceInsightsEnabled, 'true']
+Outputs:
+  EnvironmentName:
+    Description: The environment name based on the AWS Account ID.
+    Value:
+      !FindInMap
+        - AccountIDToEnvironment # The name of the Mapping
+        - !Ref "AWS::AccountId"   # The key to search (the Account ID)
+        - Environment             # The key for the value to retrieve
 
 Resources:
-  # Minimal SG; no inbound by default. Attach from your app tier as needed.
-  DBSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Aurora PostgreSQL access
-      VpcId: !Ref VpcId
-      SecurityGroupEgress:
-        - IpProtocol: -1
-          CidrIp: 0.0.0.0/0
-      Tags:
-        - Key: Name
-          Value: !Sub '${AWS::StackName}-aurora-pg-sg'
 
-  # Subnet group spanning at least two AZs
+  DBMasterSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "/rds/${EnvironmentName}-db/master"
+      GenerateSecretString:
+        # Template ensures the secret structure is compatible with RDS
+        SecretStringTemplate: !Sub '{"username": "${DBMasterUsername}", "engine": "postgres"}'
+        PasswordLength: 30
+        ExcludeCharacters: '"@/\'
+        RequireEachIncludedType: true
+
+  # 2. DB Subnet Group: Defines the subnets the cluster can use
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
-      DBSubnetGroupDescription: Aurora subnets
+      DBSubnetGroupDescription: Subnets for Aurora Serverless V2
       SubnetIds: !Ref SubnetIds
+
+  # 3. Security Group: Allows internal traffic on PostgreSQL port (5432)
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to the Aurora PostgreSQL Cluster
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        # Self-referencing rule to allow all components in this group to talk to each other
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref DBSecurityGroup
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-aurora-subnets'
+          Value: !Sub "${DBClusterIdentifier}-SG"
 
-  # Credentials stored in Secrets Manager (username + generated password)
-  DBSecret:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Name: !Sub '${AWS::StackName}-aurora-pg-credentials'
-      Description: Master credentials for Aurora PostgreSQL
-      GenerateSecretString:
-        SecretStringTemplate: !Sub '{"username":"${MasterUsername}"}'
-        GenerateStringKey: password
-        PasswordLength: 24
-        ExcludePunctuation: true
-
-  # Optional parameter groups (add settings if you need them)
-  ClusterParameterGroup:
-    Type: AWS::RDS::DBClusterParameterGroup
-    Properties:
-      Description: Aurora PostgreSQL cluster params
-      Family: aurora-postgresql16
-      Parameters:
-        # Example: turn on pg_stat_statements at cluster level if desired
-        # shared_preload_libraries: 'pg_stat_statements'
-        # pg_stat_statements.max: '10000'
-        # pg_stat_statements.track: 'all'
-        rds.force_ssl: '1'
-      Tags:
-        - Key: Name
-          Value: !Sub '${AWS::StackName}-aurora-cluster-pg'
-
-  InstanceParameterGroup:
-    Type: AWS::RDS::DBParameterGroup
-    Properties:
-      Description: Aurora PostgreSQL instance params
-      Family: aurora-postgresql16
-      Parameters:
-        log_min_duration_statement: '3000' # 3s
-      Tags:
-        - Key: Name
-          Value: !Sub '${AWS::StackName}-aurora-instance-pg'
-
-  # The DB Cluster (writer + endpoints)
+  # 4. Aurora DB Cluster: The main database resource
   DBCluster:
     Type: AWS::RDS::DBCluster
-    DeletionPolicy: Snapshot
-    UpdateReplacePolicy: Snapshot
     Properties:
       Engine: aurora-postgresql
-      EngineVersion: !Ref EngineVersion
-      DatabaseName: !Ref DBName
-      Port: !Ref Port
+      EngineVersion: !Ref PostgresEngineVersion
+      DBClusterIdentifier: !Ref DBClusterIdentifier
+      # *** KEY CHANGE: Using Secrets Manager for credentials ***
+      # Replaces MasterUsername and MasterUserPassword
+      MasterUserSecret:
+        SecretArn: !Ref DBMasterSecret
+      
+      DatabaseName: maindb
       DBSubnetGroupName: !Ref DBSubnetGroup
-      VpcSecurityGroupIds: [!Ref DBSecurityGroup]
-      DBClusterParameterGroupName: !Ref ClusterParameterGroup
+      VpcSecurityGroupIds:
+        - !GetAtt DBSecurityGroup.GroupId
+      
+      # *** KEY FOR SERVERLESS V2 ***
+      ServerlessV2ScalingConfiguration:
+        MinCapacity: !Ref DBMinACUCapacity
+        MaxCapacity: !Ref DBMaxACUCapacity
+        
+      BackupRetentionPeriod: 7
       StorageEncrypted: true
-      KmsKeyId: !If [UseCustomKms, !Ref KmsKeyArn, !Ref 'AWS::NoValue']
-      BackupRetentionPeriod: !Ref BackupRetentionDays
-      PreferredBackupWindow: !Ref PreferredBackupWindow
-      PreferredMaintenanceWindow: !Ref PreferredMaintenanceWindow
-      DeletionProtection: !Equals [!Ref DeletionProtection, 'true']
-      MasterUsername: !Sub '{{resolve:secretsmanager:${DBSecret}:SecretString:username}}'
-      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DBSecret}:SecretString:password}}'
-      CopyTagsToSnapshot: true
+      DeletionProtection: false # Set to true for production environments
+      
+  # 5. Aurora DB Instance: The required writer instance for the cluster
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBClusterIdentifier: !Ref DBCluster
+      # *** KEY FOR SERVERLESS V2 ***
+      DBInstanceClass: db.serverless 
+      Engine: aurora-postgresql
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      PubliclyAccessible: false
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-aurora-pg'
+          Value: !Sub "${DBClusterIdentifier}-instance"
 
-  # Writer instance
-  DBInstanceWriter:
-    Type: AWS::RDS::DBInstance
-    Properties:
-      DBClusterIdentifier: !Ref DBCluster
-      DBInstanceClass: !Ref InstanceClass
-      Engine: aurora-postgresql
-      DBParameterGroupName: !Ref InstanceParameterGroup
-      PubliclyAccessible: false
-      AutoMinorVersionUpgrade: true
-      EnablePerformanceInsights: !If [EnablePI, true, false]
-      PreferredMaintenanceWindow: !Ref PreferredMaintenanceWindow
-      Tags:
-        - Key: Role
-          Value: writer
+Outputs:
+  DBClusterEndpoint:
+    Description: The Endpoint URL for the Aurora Cluster
+    Value: !GetAtt DBCluster.Endpoint.Address
+    Export:
+      Name: !Sub "${AWS::StackName}-ClusterEndpoint"
 
-  # Reader instances (ReplicaCount)
-  DBInstanceReaders:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateBody: !Sub |
-        AWSTemplateFormatVersion: '2010-09-09'
-        Description: Create N reader instances
-        Parameters:
-          ClusterId: { Type: String }
-          InstanceClass: { Type: String }
-          ParamGroup: { Type: String }
-          MaintenanceWindow: { Type: String }
-          EnablePI: { Type: String, AllowedValues: ['true','false'] }
-          Count: { Type: Number }
-        Resources:
-          Loop:
-            Type: AWS::CloudFormation::WaitConditionHandle
-        Outputs: {}
-      Parameters:
-        ClusterId: !Ref DBCluster
-        InstanceClass: !Ref InstanceClass
-        ParamGroup: !Ref InstanceParameterGroup
-        MaintenanceWindow: !Ref PreferredMaintenanceWindow
-        EnablePI: !Ref PerformanceInsightsEnabled
-        Count: !Ref ReplicaCount
+  DBClusterPort:
+    Description: The Port for the Aurora Cluster
+    Value: !GetAtt DBCluster.Endpoint.Port
+    Export:
+      Name: !Sub "${AWS::StackName}-ClusterPort"
 
-  # Macro-less simple approach: create one reader per count using a transform-like nested stack is non-trivial.
-  # For most cases, explicitly add readers. Here's a single reader example—duplicate as needed or keep ReplicaCount=1.
-  DBInstanceReader1:
-    Type: AWS::RDS::DBInstance
-    Properties:
-      DBClusterIdentifier: !Ref DBCluster
-      DBInstanceClass: !Ref InstanceClass
-      Engine: aurora-postgresql
-      DBParameterGroupName: !Ref InstanceParameterGroup
-      PubliclyAccessible: false
-      AutoMinorVersionUpgrade: true
-      EnablePerformanceInsights: !If [EnablePI, true, false]
-      PreferredMaintenanceWindow: !Ref PreferredMaintenanceWindow
-      Tags:
-        - Key: Role
-          Value: reader
-
-# Outputs:
-#   ClusterIdentifier:
-#     Value: !Ref DBCluster
-#   ClusterArn:
-#     Value: !GetAtt DBCluster.Arn
-#   WriterEndpoint:
-#     Value: !GetAtt DBCluster.Endpoint.Address
-#   ReaderEndpoint:
-#     Value: !GetAtt DBCluster.ReadEndpoint.Address
-#   SecretArn:
-#     Value: !Ref DBSecret
-#   SecurityGroupId:
-#     Value: !Ref DBSecurityGroup
+  DBSecurityGroupId:
+    Description: Security Group ID for the DB Cluster
+    Value: !GetAtt DBSecurityGroup.GroupId
+    Export:
+      Name: !Sub "${AWS::StackName}-SecurityGroupId"
+  
+  MasterSecretARN:
+    Description: ARN of the Secrets Manager secret containing master credentials
+    Value: !Ref DBMasterSecret
+    Export:
+      Name: !Sub "${AWS::StackName}-MasterSecretARN"

@@ -6,8 +6,8 @@
     "PublicSubnet2Cidr" : "10.2.2.0/24",
     "PrivateSubnet1Cidr" : "10.2.11.0/24",
     "PrivateSubnet2Cidr" : "10.2.12.0/24",
-    "DBName" : "dev-db",
-    "EngineVersion": "17.4",
-    "DBClass"
+    "DBSubnet1Cidr" : "10.2.21.0/24",
+    "DBSubnet2Cidr" : "10.2.22.0/24",
+    "EngineVersion": "17.4"
   }
 }

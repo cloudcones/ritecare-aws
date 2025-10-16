@@ -26,6 +26,14 @@ Parameters:
     Type: String
     Description: CIDR block for the private subnet in Availability Zone 2.
 
+  DBSubnet1Cidr:
+    Type: String
+    Description: CIDR block for the DB subnet in Availability Zone 1.
+
+  DBSubnet2Cidr:
+    Type: String
+    Description: CIDR block for the DB subnet in Availability Zone 2.
+
 
 Resources:
   EnvParam:
@@ -69,3 +77,17 @@ Resources:
       Name: /params/vpc_subnet_private2
       Type: String
       Value: !Ref PrivateSubnet2Cidr
+
+  DBSubnet1CidrParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /params/vpc_subnet_db1
+      Type: String
+      Value: !Ref DBSubnet1Cidr
+
+  DBSubnet2CidrParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /params/vpc_subnet_db2
+      Type: String
+      Value: !Ref DBSubnet2Cidr
