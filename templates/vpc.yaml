@@ -210,5 +210,5 @@ Resources:
     Type: AWS::SSM::Parameter
     Properties:
       Type: String
-      Name:  !Sub '/net/subnets/privatesubnet2/id'
+      Name:  !Sub '/net/{{resolve:ssm:/params/env_name}}-vpc/subnets/privatesubnet2/id'
       Value: !Ref PrivateSubnet2
