@@ -2,15 +2,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: Aurora PostgreSQL cluster with 2 instances + Secrets Manager creds
 
 Parameters:
-  DBName:
-    Type: String
-    Description: database name
-  MasterUsername:
-    Type: String
-    Default: admin
-    MinLength: 8
-    AllowedPattern: '[a-zA-Z0-9_]+'
-    Description: Master username
+
   EngineVersion:
     Type: String
     Default: '16.3'
