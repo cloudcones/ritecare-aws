@@ -27,9 +27,13 @@ Parameters:
     Type: String
     Description: The AWS Account ID for the prod environment.
 
+  WorkloadsOU:
+    Type: String
+    Description: The OU for the workloads.
+
   DevOU:
     Type: String
-    Description: The AWS Account ID for the dev environment.
+    Description: The OU for the dev environment.
 
   TargetRoleName:
     Type: String
@@ -167,35 +171,35 @@ Resources:
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-                DeploymentTargets: "SourceOut::workloads_ou.csv"
+                DeploymentTargets: !Ref WorkloadsOU
                 TemplatePath: !Sub "SourceOut::${TemplatesPath}/vpc.yaml"
                 Regions: !Ref Region
               RunOrder: 1
 
         #Deploy Infra Resources
-        - Name: Deploy-app-infra
-          Actions:
+        # - Name: Deploy-app-infra
+        #   Actions:
 
-            - Name: deploy-ec2
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Provider: CloudFormationStackSet
-                Version: "1"
-              InputArtifacts:
-                - Name: SourceOut
-              Configuration:
-                PermissionModel: SERVICE_MANAGED
-                CallAs: DELEGATED_ADMIN
-                StackSetName: deploy-ec2
-                MaxConcurrentPercentage: "50"
-                FailureTolerancePercentage: "100"
-                ConcurrencyMode: SOFT_FAILURE_TOLERANCE
-                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-                DeploymentTargets: !Ref DevOU
-                TemplatePath: !Sub "SourceOut::${TemplatesPath}/ec2.yaml"
-                Regions: !Ref Region
-              RunOrder: 1
+        #     - Name: deploy-ec2
+        #       ActionTypeId:
+        #         Category: Deploy
+        #         Owner: AWS
+        #         Provider: CloudFormationStackSet
+        #         Version: "1"
+        #       InputArtifacts:
+        #         - Name: SourceOut
+        #       Configuration:
+        #         PermissionModel: SERVICE_MANAGED
+        #         CallAs: DELEGATED_ADMIN
+        #         StackSetName: deploy-ec2
+        #         MaxConcurrentPercentage: "50"
+        #         FailureTolerancePercentage: "100"
+        #         ConcurrencyMode: SOFT_FAILURE_TOLERANCE
+        #         Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+        #         DeploymentTargets: !Ref DevOU
+        #         TemplatePath: !Sub "SourceOut::${TemplatesPath}/ec2.yaml"
+        #         Regions: !Ref Region
+        #       RunOrder: 1
 
 
             # - Name: Deploy-ec2-DEV
