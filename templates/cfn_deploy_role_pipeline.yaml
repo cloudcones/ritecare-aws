@@ -90,4 +90,5 @@ Resources:
                 TemplatePath: !Sub "SourceOut::${TemplatesPath}/cfn_deploy_role.yaml"
                 Parameters: !Sub "SourceOut::${ParametersPath}/cfn_deploy_role.json"
                 Regions: !Ref Region
+                OrganizationsAutoDeployment: EnabledWithStackRetention
               RunOrder: 1
