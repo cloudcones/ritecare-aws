@@ -6,7 +6,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: EC2 Security Group
-      VpcId: !Sub '/net/{{resolve:ssm:/params/env_name}}-vpc/id'
+      VpcId: "{{resolve:ssm:/net/vpc/id}}"
       Tags:
         - Key: Name
           Value: ec2-sg
