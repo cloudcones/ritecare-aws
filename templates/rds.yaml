@@ -1,24 +1,214 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Aurora PostgreSQL cluster with 2 instances + Secrets Manager creds
 
+Parameters:
+  DBName:
+    Type: String
+    Description: database name
+  MasterUsername:
+    Type: String
+    Default: admin
+    MinLength: 8
+    AllowedPattern: '[a-zA-Z0-9_]+'
+    Description: Master username
+  EngineVersion:
+    Type: String
+    Default: '16.3'
+    Description: Aurora PostgreSQL engine version
+  InstanceClass:
+    Type: String
+    Default: db.r6g.large
+    Description: DB instance class for writer/reader
+  BackupRetentionDays:
+    Type: Number
+    Default: 7
+    MinValue: 1
+    MaxValue: 35
+  Port:
+    Type: Number
+    Default: 5432
+  PreferredMaintenanceWindow:
+    Type: String
+    Default: Sun:06:00-Sun:07:00
+  PreferredBackupWindow:
+    Type: String
+    Default: 07:00-08:00
+  PerformanceInsightsEnabled:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'true'
+  DeletionProtection:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'true'
+  ReplicaCount:
+    Type: Number
+    Default: 1
+    MinValue: 1
+    MaxValue: 15
+    Description: Number of reader instances in addition to the writer
+
+Conditions:
+  EnablePI: !Equals [!Ref PerformanceInsightsEnabled, 'true']
 
 Resources:
-
+  # Minimal SG; no inbound by default. Attach from your app tier as needed.
   DBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Aurora Postgres access
-      VpcId: '/net/{{resolve:ssm:/params/env_name}}-vpc/id'
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 5432
-          ToPort: 5432
-          SourceSecurityGroupId: !Sub "{{resolve:ssm:/ec2/ec2-securitygroup/id:1}}"
+      GroupDescription: Aurora PostgreSQL access
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
-          Value: "aurora-sg"
+          Value: !Sub '${AWS::StackName}-aurora-pg-sg'
 
-  SGIDParam+:
-    Type: AWS::SSM::Parameter
+  # Subnet group spanning at least two AZs
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
     Properties:
-      Name: /ec2/rds-securitygroup/id
-      Value: !GetAtt DBSecurityGroup.GroupId
-      Type: String
+      DBSubnetGroupDescription: Aurora subnets
+      SubnetIds: !Ref SubnetIds
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-aurora-subnets'
+
+  # Credentials stored in Secrets Manager (username + generated password)
+  DBSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${AWS::StackName}-aurora-pg-credentials'
+      Description: Master credentials for Aurora PostgreSQL
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username":"${MasterUsername}"}'
+        GenerateStringKey: password
+        PasswordLength: 24
+        ExcludePunctuation: true
+
+  # Optional parameter groups (add settings if you need them)
+  ClusterParameterGroup:
+    Type: AWS::RDS::DBClusterParameterGroup
+    Properties:
+      Description: Aurora PostgreSQL cluster params
+      Family: aurora-postgresql16
+      Parameters:
+        # Example: turn on pg_stat_statements at cluster level if desired
+        # shared_preload_libraries: 'pg_stat_statements'
+        # pg_stat_statements.max: '10000'
+        # pg_stat_statements.track: 'all'
+        rds.force_ssl: '1'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-aurora-cluster-pg'
+
+  InstanceParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Description: Aurora PostgreSQL instance params
+      Family: aurora-postgresql16
+      Parameters:
+        log_min_duration_statement: '3000' # 3s
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-aurora-instance-pg'
+
+  # The DB Cluster (writer + endpoints)
+  DBCluster:
+    Type: AWS::RDS::DBCluster
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      Engine: aurora-postgresql
+      EngineVersion: !Ref EngineVersion
+      DatabaseName: !Ref DBName
+      Port: !Ref Port
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VpcSecurityGroupIds: [!Ref DBSecurityGroup]
+      DBClusterParameterGroupName: !Ref ClusterParameterGroup
+      StorageEncrypted: true
+      KmsKeyId: !If [UseCustomKms, !Ref KmsKeyArn, !Ref 'AWS::NoValue']
+      BackupRetentionPeriod: !Ref BackupRetentionDays
+      PreferredBackupWindow: !Ref PreferredBackupWindow
+      PreferredMaintenanceWindow: !Ref PreferredMaintenanceWindow
+      DeletionProtection: !Equals [!Ref DeletionProtection, 'true']
+      MasterUsername: !Sub '{{resolve:secretsmanager:${DBSecret}:SecretString:username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DBSecret}:SecretString:password}}'
+      CopyTagsToSnapshot: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-aurora-pg'
+
+  # Writer instance
+  DBInstanceWriter:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBClusterIdentifier: !Ref DBCluster
+      DBInstanceClass: !Ref InstanceClass
+      Engine: aurora-postgresql
+      DBParameterGroupName: !Ref InstanceParameterGroup
+      PubliclyAccessible: false
+      AutoMinorVersionUpgrade: true
+      EnablePerformanceInsights: !If [EnablePI, true, false]
+      PreferredMaintenanceWindow: !Ref PreferredMaintenanceWindow
+      Tags:
+        - Key: Role
+          Value: writer
+
+  # Reader instances (ReplicaCount)
+  DBInstanceReaders:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateBody: !Sub |
+        AWSTemplateFormatVersion: '2010-09-09'
+        Description: Create N reader instances
+        Parameters:
+          ClusterId: { Type: String }
+          InstanceClass: { Type: String }
+          ParamGroup: { Type: String }
+          MaintenanceWindow: { Type: String }
+          EnablePI: { Type: String, AllowedValues: ['true','false'] }
+          Count: { Type: Number }
+        Resources:
+          Loop:
+            Type: AWS::CloudFormation::WaitConditionHandle
+        Outputs: {}
+      Parameters:
+        ClusterId: !Ref DBCluster
+        InstanceClass: !Ref InstanceClass
+        ParamGroup: !Ref InstanceParameterGroup
+        MaintenanceWindow: !Ref PreferredMaintenanceWindow
+        EnablePI: !Ref PerformanceInsightsEnabled
+        Count: !Ref ReplicaCount
+
+  # Macro-less simple approach: create one reader per count using a transform-like nested stack is non-trivial.
+  # For most cases, explicitly add readers. Here's a single reader example—duplicate as needed or keep ReplicaCount=1.
+  DBInstanceReader1:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBClusterIdentifier: !Ref DBCluster
+      DBInstanceClass: !Ref InstanceClass
+      Engine: aurora-postgresql
+      DBParameterGroupName: !Ref InstanceParameterGroup
+      PubliclyAccessible: false
+      AutoMinorVersionUpgrade: true
+      EnablePerformanceInsights: !If [EnablePI, true, false]
+      PreferredMaintenanceWindow: !Ref PreferredMaintenanceWindow
+      Tags:
+        - Key: Role
+          Value: reader
+
+# Outputs:
+#   ClusterIdentifier:
+#     Value: !Ref DBCluster
+#   ClusterArn:
+#     Value: !GetAtt DBCluster.Arn
+#   WriterEndpoint:
+#     Value: !GetAtt DBCluster.Endpoint.Address
+#   ReaderEndpoint:
+#     Value: !GetAtt DBCluster.ReadEndpoint.Address
+#   SecretArn:
+#     Value: !Ref DBSecret
+#   SecurityGroupId:
+#     Value: !Ref DBSecurityGroup

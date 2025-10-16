@@ -1,0 +1,24 @@
+
+
+Resources:
+
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Aurora Postgres access
+      VpcId: '/net/{{resolve:ssm:/params/env_name}}-vpc/id'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Sub "{{resolve:ssm:/ec2/ec2-securitygroup/id:1}}"
+      Tags:
+        - Key: Name
+          Value: "aurora-sg"
+
+  SGIDParam+:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ec2/rds-securitygroup/id
+      Value: !GetAtt DBSecurityGroup.GroupId
+      Type: String
