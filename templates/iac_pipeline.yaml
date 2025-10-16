@@ -173,8 +173,8 @@ Resources:
               RunOrder: 1
 
         # Deploy Infra Resources
-        - Name: Deploy-app-infra
-          Actions:
+        # - Name: Deploy-app-infra
+        #   Actions:
 
             # - Name: deploy-ec2
             #   ActionTypeId:
@@ -203,24 +203,24 @@ Resources:
             #   RunOrder: 1
 
 
-            - Name: Deploy-ec2-DEV
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Provider: CloudFormation
-                Version: '1'
-              InputArtifacts:
-                - Name: SourceOut
-              Configuration:
-                ActionMode: CREATE_UPDATE
-                StackName: Deploy-ec2
-                TemplatePath: !Sub SourceOut::${TemplatesPath}/ec2.yaml
-                #TemplateConfiguration: !Sub "SourceOut::${ParametersPath}/${DevAccountId}.json"
-                Capabilities: CAPABILITY_NAMED_IAM
-                RoleArn: !Sub "arn:aws:iam::${DevAccountId}:role/${TargetRoleName}"
-              Region: !Ref Region
-              RunOrder: 1
-              RoleArn: !Sub "arn:aws:iam::${DevAccountId}:role/${TargetRoleName}"
+            # - Name: Deploy-ec2-DEV
+            #   ActionTypeId:
+            #     Category: Deploy
+            #     Owner: AWS
+            #     Provider: CloudFormation
+            #     Version: '1'
+            #   InputArtifacts:
+            #     - Name: SourceOut
+            #   Configuration:
+            #     ActionMode: CREATE_UPDATE
+            #     StackName: Deploy-ec2
+            #     TemplatePath: !Sub SourceOut::${TemplatesPath}/ec2.yaml
+            #     #TemplateConfiguration: !Sub "SourceOut::${ParametersPath}/${DevAccountId}.json"
+            #     Capabilities: CAPABILITY_NAMED_IAM
+            #     RoleArn: !Sub "arn:aws:iam::${DevAccountId}:role/${TargetRoleName}"
+            #   Region: !Ref Region
+            #   RunOrder: 1
+            #   RoleArn: !Sub "arn:aws:iam::${DevAccountId}:role/${TargetRoleName}"
 
         #     # - Name: deploy-rds
         #     #   ActionTypeId:
