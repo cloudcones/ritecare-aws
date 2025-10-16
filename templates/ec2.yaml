@@ -1,16 +1,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
-Parameters:
-  EnvName:
-    Type: String
-
 Resources:
 
   EC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: EC2 Security Group
-      VpcId: !Sub '{{resolve:ssm:/net/${EnvName}-vpc/id}}'
+      VpcId: !Sub '/net/{{resolve:ssm:/params/env_name}}-vpc/id'
       Tags:
         - Key: Name
           Value: ec2-sg
