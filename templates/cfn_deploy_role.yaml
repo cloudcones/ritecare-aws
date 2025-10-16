@@ -77,25 +77,10 @@ Resources:
           - Sid: AllowEC2
             Effect: Allow
             Action:
-              - ec2:Describe*
-              - ec2:Get*
-              - ec2:Create*
-              - ec2:RunInstances
-              - ec2:Modify*
-              - ec2:Associate*
-              - ec2:Attach*
-              - ec2:Authorize*
-              - ec2:AllocateAddress
-              - ec2:AssociateAddress
-              - ec2:Tag*
-              - ec2:CreateTags
+              - ec2:*
             Resource: "*"
           - Sid: AllowRDS
             Effect: Allow
             Action:
-              - rds:Describe*
-              - rds:ListTagsForResource
-              - rds:AddTagsToResource
-              - rds:Create*
-              - rds:Modify*
+              - rds:*
             Resource: "*"
