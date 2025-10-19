@@ -48,7 +48,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "Allow HTTP and HTTPS for Load Balancer"
-      VpcId: !Ref VPCID
+      VpcId: "{{resolve:ssm:/net/vpc/id}}"
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
