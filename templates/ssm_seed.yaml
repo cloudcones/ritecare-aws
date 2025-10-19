@@ -120,13 +120,13 @@ Resources:
   DBMinACUParam:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /params/pg_engine_version
+      Name: /params/db_min_acu
       Type: String
-      Value: !Ref PGEngineVersion
+      Value: !Ref DBMaxACU
 
   DBMaxACUParam:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /params/pg_engine_version
+      Name: /params/db_max_acu
       Type: String
-      Value: !Ref PGEngineVersion
+      Value: !Ref DBMaxACU
