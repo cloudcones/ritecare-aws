@@ -7,6 +7,8 @@ Parameters:
   DBPort:
     Type: Number
     Description: Database port
+  AppName:
+    Type: String
 
 Resources:
 
@@ -54,8 +56,8 @@ Resources:
 
       # Serverless v2 scaling
       ServerlessV2ScalingConfiguration:
-        MinCapacity: !Ref DBMinACU
-        MaxCapacity: !Ref DBMaxACU
+        MinCapacity: '{{resolve:ssm:/params/db_min_acu}}'
+        MaxCapacity: '{{resolve:ssm:/params/db_min_acu}}'
 
       # Tags:
       #   - Key: Name
