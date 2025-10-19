@@ -1,15 +1,22 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
+Parameters:
+  DBPort:
+    Type: Number
+    Description: Database port
+  AppName:
+    Type: String
+
 Resources:
 
-  EC2SecurityGroup:
+  EC2AppSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: EC2 Security Group
+      GroupDescription: EC2 App Security Group
       VpcId: "{{resolve:ssm:/net/vpc/id}}"
       Tags:
         - Key: Name
-          Value: ec2-sg
+          Value: !Sub "${AppName}-ec2-sg"
 
   DBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -18,22 +25,22 @@ Resources:
       VpcId: "{{resolve:ssm:/net/vpc/id}}"
       Tags:
         - Key: Name
-          Value: db-sg
+          Value: !Sub "${AppName}-db-sg"
 
   EC2ToDbIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       GroupId: !Ref DBSecurityGroup
       IpProtocol: tcp
-      FromPort: 5432
-      ToPort: 5432
-      SourceSecurityGroupId: !Ref EC2SecurityGroup 
+      FromPort: !Ref DBPort
+      ToPort: !Ref DBPort
+      SourceSecurityGroupId: !Ref EC2AppSecurityGroup 
           
   EC2SGIDParam:
     Type: AWS::SSM::Parameter
     Properties:
       Name: /ec2/securitygroups/ec2-sg/id
-      Value: !GetAtt EC2SecurityGroup.GroupId
+      Value: !GetAtt EC2AppSecurityGroup.GroupId
       Type: String
 
   DBSGIDParam:

@@ -100,8 +100,32 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 DeploymentTargets: !Ref DevOU
                 TemplatePath: !Sub "SourceOut::${TemplatesPath}/security_groups.yaml"
+                Parameters: !Sub "SourceOut::${ParametersPath}/security_groups.json"
                 Regions: !Ref Region
               RunOrder: 1
+
+            - Name: deploy-ec2
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormationStackSet
+                Version: "1"
+              InputArtifacts:
+                - Name: SourceOut
+              Configuration:
+                PermissionModel: SERVICE_MANAGED
+                CallAs: DELEGATED_ADMIN
+                StackSetName: deploy-security-groups
+                MaxConcurrentPercentage: "50"
+                FailureTolerancePercentage: "100"
+                ConcurrencyMode: SOFT_FAILURE_TOLERANCE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                DeploymentTargets: !Ref DevOU
+                TemplatePath: !Sub "SourceOut::${TemplatesPath}/ec2.yaml"
+                Parameters: !Sub "SourceOut::${ParametersPath}/ec2.json"
+                Regions: !Ref Region
+              RunOrder: 2
+
 
             # - Name: deploy-rds
             #   ActionTypeId:
