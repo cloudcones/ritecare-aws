@@ -8,6 +8,9 @@ Parameters:
     Type: String
     Description: Enter a name for the key pair
 
+  BastionAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+
 Resources:
 
   KeyPairHelperRole:
@@ -56,7 +59,7 @@ Resources:
     Properties:
       Description: Create/update/delete EC2 key pair and mirror private key in Secrets Manager
       Role: !GetAtt KeyPairHelperRole.Arn
-      Runtime: python3.12
+      Runtime: python3.13
       Handler: index.handler
       Timeout: 180
 
@@ -85,23 +88,10 @@ Resources:
             req.add_header("Content-Type", "")
             urllib.request.urlopen(req)
 
-          def get_kms_key():
-            path = os.environ.get("KMS_PARAM_PATH")
-            if not path:
-              return None
-            try:
-              r = ssm.get_parameter(Name=path)
-              return r["Parameter"]["Value"]
-            except ClientError as e:
-              # If param not found, fall back to default AWS managed key
-              if e.response["Error"]["Code"] == "ParameterNotFound":
-                return None
-              raise
-
-          def create_or_rotate_secret(secret_name, secret_string, kms_key_id):
+          def create_or_rotate_secret(secret_name, secret_string):
             # Create if missing, else put a new version
             try:
-              sm.create_secret(Name=secret_name, SecretString=secret_string, KmsKeyId=kms_key_id)
+              sm.create_secret(Name=secret_name, SecretString=secret_string)
             except ClientError as e:
               if e.response["Error"]["Code"] == "ResourceExistsException":
                 sm.put_secret_value(SecretId=secret_name, SecretString=secret_string)
@@ -122,7 +112,6 @@ Resources:
             props = event["ResourceProperties"]
             key_name   = props["KeyPairName"]
             secret_name = props.get("SecretName", f"/ec2/keypairs/{key_name}")
-            kms_key_id = get_kms_key()
 
             try:
               if event["RequestType"] in ("Create", "Update"):
@@ -142,7 +131,7 @@ Resources:
                 kp = ec2.create_key_pair(KeyName=key_name)  # default RSA
                 pem = kp["KeyMaterial"]
 
-                create_or_rotate_secret(secret_name, pem, kms_key_id)
+                create_or_rotate_secret(secret_name, pem)
 
                 respond(event, context, "SUCCESS",
                         data={"SecretName": secret_name, "KeyPairName": key_name},
@@ -167,6 +156,14 @@ Resources:
     Type: Custom::Ec2KeyToSecret
     Properties:
       ServiceToken: !GetAtt KeyPairHelper.Arn
+      KeyPairName:  !Ref KeyPairName
+
+  KeyPairNameParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/ec2/keypairs/${KeyPairName}/name"
+      Type: String
+      Value: !Ref KeyPairName
 
   EC2IAMRole:
     Type: AWS::IAM::Role
@@ -185,33 +182,27 @@ Resources:
 
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
-    InstanceProfileName: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}'
     Properties:
+      InstanceProfileName: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}'
       Roles: 
         - !Ref EC2IAMRole
 
-  # BastionInstance:
-  #   Type: AWS::EC2::Instance
-  #   Properties:
-  #     IamInstanceProfile: !Ref EC2InstanceProfile
-  #     InstanceType: '{{resolve:ssm:/params/bastion_instance_type}}'
-  #     ImageId: !Ref AmiId
-  #     NetworkInterfaces:
-  #       - DeviceIndex: 0
-  #         SubnetId: !Ref PrivateSubnetId
-  #         Groups: [ !Ref BastionSG ]
-  #         AssociatePublicIpAddress: false
-  #     BlockDeviceMappings:
-  #       - DeviceName: /dev/xvda
-  #         Ebs:
-  #           VolumeSize: 8
-  #           VolumeType: gp3
-  #           Encrypted: true
-  #     MetadataOptions:
-  #       HttpEndpoint: enabled
-  #       HttpTokens: required   # enforce IMDSv2
-  #     Tags:
-  #       - Key: Name
-  #         Value: !Ref BastionName
-  #       - Key: env
-  #         Value: !Ref EnvName
+  BastionInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      InstanceType: '{{resolve:ssm:/params/bastion_instance_type}}'
+      ImageId: !Ref BastionAmiId
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          SubnetId: '{{resolve:ssm:/net/subnets/privatesubnet1/id}}' 
+          AssociatePublicIpAddress: false
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+            Encrypted: true
+      KeyName: !Ref KeyPairName
+      SecurityGroupIds: 
+        - '{{resolve:ssm:/ec2/securitygroups/bastion-sg/id}}'

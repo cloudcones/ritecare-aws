@@ -43,11 +43,18 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub "${AppName}-db-sg"
-          
+
+  BastionSGIDParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /ec2/securitygroups/bastion-sg/id
+      Value: !GetAtt BastionSecurityGroup.GroupId
+      Type: String
+
   EC2SGIDParam:
     Type: AWS::SSM::Parameter
     Properties:
-      Name: /ec2/securitygroups/ec2-sg/id
+      Name: !Sub /ec2/securitygroups/ec2-sg/id
       Value: !GetAtt EC2AppSecurityGroup.GroupId
       Type: String
 
