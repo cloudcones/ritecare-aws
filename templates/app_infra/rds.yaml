@@ -3,25 +3,12 @@ Description: >
   CloudFormation template to create an Amazon Aurora PostgreSQL Serverless v2 cluster
   with automatic scaling capabilities. 
 
+Parameters:
+  DBPort:
+    Type: Number
+    Description: Database port
+
 Resources:
-  ClusterSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Security group for Aurora PostgreSQL Serverless v2 cluster
-      VpcId: "{{resolve:ssm:/net/vpc/id}}"
-      SecurityGroupIngress:
-          - AllowCidrIngress
-          - {
-              IpProtocol: tcp,
-              FromPort: !Ref DBPort,
-              ToPort: !Ref DBPort,
-              CidrIp: !Ref AllowedClientCidr,
-              Description: "Client access to Aurora PostgreSQL"
-            }
-          - !Ref "AWS::NoValue"
-      Tags:
-        - Key: Name
-          Value: !Sub "${ClusterName}-sg"
 
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
@@ -30,26 +17,24 @@ Resources:
       SubnetIds:
         - '{{resolve:ssm:/net/subnets/dbsubnet1/id}}'
         - '{{resolve:ssm:/net/subnets/dbsubnet2/id}}'
-
-      # Tags:
-      #   - Key: Name
-      #     Value: !Sub "${ClusterName}-subnets"
+      Tags:
+        - Key: Name
+          Value: "postgresql-subnets"
 
   DBCluster:
     Type: AWS::RDS::DBCluster
     Properties:
       Engine: aurora-postgresql
-      EngineVersion: !Ref EngineVersion
-      EngineMode: provisioned   # Serverless v2 uses 'provisioned' with ServerlessV2ScalingConfiguration
-      DatabaseName: !Ref DatabaseName
+      EngineVersion: '{{resolve:ssm:/params/pg_engine_version}'
+      EngineMode: provisioned
+      DatabaseName: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}-pg-cluster'
       DBSubnetGroupName: !Ref DBSubnetGroup
-      VpcSecurityGroupIds: [!Ref ClusterSecurityGroup]
+      VpcSecurityGroupIds: '{{resolve:ssm:/ec2/securitygroups/db-sg/id}}'
       Port: !Ref DBPort
 
-      # Storage & backup
-      BackupRetentionPeriod: !Ref BackupRetentionDays
-      PreferredBackupWindow: "06:15-06:45"
-      PreferredMaintenanceWindow: "sun:07:00-sun:07:30"
+      # BackupRetentionPeriod: !Ref DBBackupRetentionDays
+      # PreferredBackupWindow: "06:00-07:00"
+      # PreferredMaintenanceWindow: "sat:07:00-sun:08:00"
 
       # Encryption
       StorageEncrypted: true
@@ -57,7 +42,7 @@ Resources:
 
       # AuthN: no static password + IAM auth enabled
       ManageMasterUserPassword: true            # Auto-generates and stores master password in Secrets Manager
-      MasterUsername: !Ref MasterUsername
+      # MasterUsername: !Ref MasterUsername
       EnableIAMDatabaseAuthentication: true     # Allow token-based IAM auth
 
       # Logs
@@ -69,8 +54,8 @@ Resources:
 
       # Serverless v2 scaling
       ServerlessV2ScalingConfiguration:
-        MinCapacity: !Ref MinACU
-        MaxCapacity: !Ref MaxACU
+        MinCapacity: !Ref DBMinACU
+        MaxCapacity: !Ref DBMaxACU
 
       # Tags:
       #   - Key: Name
@@ -90,7 +75,7 @@ Resources:
       MonitoringInterval: 0  # set >0 with a role for Enhanced Monitoring
       Tags:
         - Key: Name
-          Value: !Sub "${ClusterName}-instance"
+          Value: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}'
 
 # Outputs:
 #   ClusterArn:

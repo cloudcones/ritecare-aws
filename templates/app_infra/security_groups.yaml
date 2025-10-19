@@ -44,6 +44,24 @@ Resources:
         - Key: Name
           Value: !Sub "${AppName}-db-sg"
 
+  LBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Allow HTTP and HTTPS for Load Balancer"
+      VpcId: !Ref VPCID
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${AppName}-lb-sg"
+
   BastionSGIDParam:
     Type: AWS::SSM::Parameter
     Properties:
@@ -63,4 +81,11 @@ Resources:
     Properties:
       Name: /ec2/securitygroups/db-sg/id
       Value: !GetAtt DBSecurityGroup.GroupId
+      Type: String
+
+  LBSGIDParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ec2/securitygroups/lb-sg/id
+      Value: !GetAtt LBSecurityGroup.GroupId
       Type: String

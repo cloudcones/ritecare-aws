@@ -193,10 +193,7 @@ Resources:
       IamInstanceProfile: !Ref EC2InstanceProfile
       InstanceType: '{{resolve:ssm:/params/bastion_instance_type}}'
       ImageId: !Ref BastionAmiId
-      NetworkInterfaces:
-        - DeviceIndex: 0
-          SubnetId: '{{resolve:ssm:/net/subnets/privatesubnet1/id}}' 
-          AssociatePublicIpAddress: false
+      SubnetId: '{{resolve:ssm:/net/subnets/privatesubnet1/id}}' 
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:

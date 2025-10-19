@@ -37,6 +37,15 @@ Parameters:
   BastionInstanceType:
     Type: String
 
+  PGEngineVersion:
+    Type: String
+
+  DBMinACU:
+    Type: String
+
+  DBMaxACU:
+    Type: String
+
 Resources:
   EnvParam:
     Type: AWS::SSM::Parameter
@@ -100,3 +109,24 @@ Resources:
       Name: /params/bastion_instance_type
       Type: String
       Value: !Ref BastionInstanceType
+
+  PGEngineVersionParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /params/pg_engine_version
+      Type: String
+      Value: !Ref PGEngineVersion
+
+  DBMinACUParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /params/pg_engine_version
+      Type: String
+      Value: !Ref PGEngineVersion
+
+  DBMaxACUParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /params/pg_engine_version
+      Type: String
+      Value: !Ref PGEngineVersion

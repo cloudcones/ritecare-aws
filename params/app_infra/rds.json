@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey": "DBPort",
+    "ParameterValue": "5432"
+  },
+  {
+    "ParameterKey": "AppName",
+    "ParameterValue": "ritecare"
+  }
+]
