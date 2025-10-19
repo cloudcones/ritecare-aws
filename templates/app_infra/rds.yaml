@@ -1,0 +1,126 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  CloudFormation template to create an Amazon Aurora PostgreSQL Serverless v2 cluster
+  with automatic scaling capabilities. 
+
+Resources:
+  ClusterSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Aurora PostgreSQL Serverless v2 cluster
+      VpcId: "{{resolve:ssm:/net/vpc/id}}"
+      SecurityGroupIngress:
+          - AllowCidrIngress
+          - {
+              IpProtocol: tcp,
+              FromPort: !Ref DBPort,
+              ToPort: !Ref DBPort,
+              CidrIp: !Ref AllowedClientCidr,
+              Description: "Client access to Aurora PostgreSQL"
+            }
+          - !Ref "AWS::NoValue"
+      Tags:
+        - Key: Name
+          Value: !Sub "${ClusterName}-sg"
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for Aurora PostgreSQL Serverless v2 cluster
+      SubnetIds:
+        - '{{resolve:ssm:/net/subnets/dbsubnet1/id}}'
+        - '{{resolve:ssm:/net/subnets/dbsubnet2/id}}'
+
+      # Tags:
+      #   - Key: Name
+      #     Value: !Sub "${ClusterName}-subnets"
+
+  DBCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: aurora-postgresql
+      EngineVersion: !Ref EngineVersion
+      EngineMode: provisioned   # Serverless v2 uses 'provisioned' with ServerlessV2ScalingConfiguration
+      DatabaseName: !Ref DatabaseName
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VpcSecurityGroupIds: [!Ref ClusterSecurityGroup]
+      Port: !Ref DBPort
+
+      # Storage & backup
+      BackupRetentionPeriod: !Ref BackupRetentionDays
+      PreferredBackupWindow: "06:15-06:45"
+      PreferredMaintenanceWindow: "sun:07:00-sun:07:30"
+
+      # Encryption
+      StorageEncrypted: true
+      # KmsKeyId: !If [UseKmsKey, !Ref KmsKeyArn, !Ref "AWS::NoValue"]
+
+      # AuthN: no static password + IAM auth enabled
+      ManageMasterUserPassword: true            # Auto-generates and stores master password in Secrets Manager
+      MasterUsername: !Ref MasterUsername
+      EnableIAMDatabaseAuthentication: true     # Allow token-based IAM auth
+
+      # Logs
+      EnableCloudwatchLogsExports:
+        - postgresql
+
+      # Deletion protection
+      #DeletionProtection: !If [!Equals [!Ref DeletionProtection, "true"], true, false]
+
+      # Serverless v2 scaling
+      ServerlessV2ScalingConfiguration:
+        MinCapacity: !Ref MinACU
+        MaxCapacity: !Ref MaxACU
+
+      # Tags:
+      #   - Key: Name
+      #     Value: !Ref ClusterName
+
+  # At least one instance is required for an Aurora v2 cluster.
+  # Use the special 'db.serverless' class for Serverless v2.
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBClusterIdentifier: !Ref DBCluster
+      DBInstanceClass: db.serverless
+      Engine: aurora-postgresql
+      PubliclyAccessible: false
+      AutoMinorVersionUpgrade: true
+      #EnablePerformanceInsights: !If [EnablePI, true, false]
+      MonitoringInterval: 0  # set >0 with a role for Enhanced Monitoring
+      Tags:
+        - Key: Name
+          Value: !Sub "${ClusterName}-instance"
+
+# Outputs:
+#   ClusterArn:
+#     Description: ARN of the Aurora PostgreSQL Serverless v2 cluster
+#     Value: !Ref DBCluster
+#     Export:
+#       Name: !Sub "${AWS::StackName}-ClusterArn"
+
+#   Endpoint:
+#     Description: Writer endpoint hostname
+#     Value: !GetAtt DBCluster.Endpoint.Address
+#     Export:
+#       Name: !Sub "${AWS::StackName}-WriterEndpoint"
+
+#   ReaderEndpoint:
+#     Description: Reader endpoint hostname
+#     Value: !GetAtt DBCluster.ReadEndpoint.Address
+#     Export:
+#       Name: !Sub "${AWS::StackName}-ReaderEndpoint"
+
+#   Port:
+#     Description: PostgreSQL port
+#     Value: !Ref DBPort
+
+#   SecurityGroupId:
+#     Description: Security Group ID attached to the cluster
+#     Value: !Ref ClusterSecurityGroup
+
+#   MasterUserSecretArn:
+#     Description: Secrets Manager ARN for the auto-generated master password
+#     Value: !GetAtt DBCluster.MasterUserSecret.SecretArn
+#     Export:
+#       Name: !Sub "${AWS::StackName}-MasterUserSecretArn"

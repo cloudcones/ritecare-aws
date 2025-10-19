@@ -22,3 +22,21 @@ Resources:
       Name: /ec2/rds-securitygroup/id
       Value: !GetAtt DBSecurityGroup.GroupId
       Type: String
+
+Mappings:
+  AccountIDToEnvironment:
+    "410859982962": # Replace with your actual Dev Account ID
+      Environment: "dev"
+    "109648734102": # Replace with your actual Prod Account ID
+      Environment: "test"
+    "981425614813": # Replace with your actual QA Account ID
+      Environment: "prod"
+
+Outputs:
+  EnvironmentName:
+    Description: The environment name based on the AWS Account ID.
+    Value:
+      !FindInMap
+        - AccountIDToEnvironment # The name of the Mapping
+        - !Ref "AWS::AccountId"   # The key to search (the Account ID)
+        - Environment             # The key for the value to retrieve

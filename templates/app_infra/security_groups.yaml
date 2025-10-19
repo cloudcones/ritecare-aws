@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Resources:
+
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: EC2 Security Group
+      VpcId: "{{resolve:ssm:/net/vpc/id}}"
+      Tags:
+        - Key: Name
+          Value: ec2-sg
+
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: DB Security Group
+      VpcId: "{{resolve:ssm:/net/vpc/id}}"
+      Tags:
+        - Key: Name
+          Value: db-sg
+
+  EC2ToDbIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref DBSecurityGroup
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref EC2SecurityGroup 
+          
+  EC2SGIDParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ec2/securitygroups/ec2-sg/id
+      Value: !GetAtt EC2SecurityGroup.GroupId
+      Type: String
+
+  DBSGIDParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /ec2/securitygroups/db-sg/id
+      Value: !GetAtt DBSecurityGroup.GroupId
+      Type: String
