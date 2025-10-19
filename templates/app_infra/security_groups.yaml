@@ -8,6 +8,14 @@ Parameters:
     Type: String
 
 Resources:
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: EC2 App Security Group
+      VpcId: "{{resolve:ssm:/net/vpc/id}}"
+      Tags:
+        - Key: Name
+          Value: !Sub "${AppName}-bastion-sg"
 
   EC2AppSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -23,18 +31,18 @@ Resources:
     Properties:
       GroupDescription: DB Security Group
       VpcId: "{{resolve:ssm:/net/vpc/id}}"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref DBPort
+          ToPort: !Ref DBPort
+          SourceSecurityGroupId: !Ref EC2AppSecurityGroup
+        - IpProtocol: tcp
+          FromPort: !Ref DBPort
+          ToPort: !Ref DBPort
+          SourceSecurityGroupId: !Ref BastionSecurityGroup
       Tags:
         - Key: Name
           Value: !Sub "${AppName}-db-sg"
-
-  EC2ToDbIngress:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      GroupId: !Ref DBSecurityGroup
-      IpProtocol: tcp
-      FromPort: !Ref DBPort
-      ToPort: !Ref DBPort
-      SourceSecurityGroupId: !Ref EC2AppSecurityGroup 
           
   EC2SGIDParam:
     Type: AWS::SSM::Parameter

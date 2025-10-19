@@ -34,6 +34,8 @@ Parameters:
     Type: String
     Description: CIDR block for the DB subnet in Availability Zone 2.
 
+  BastionInstanceType:
+    Type: String
 
 Resources:
   EnvParam:
@@ -91,3 +93,10 @@ Resources:
       Name: /params/vpc_subnet_db2
       Type: String
       Value: !Ref DBSubnet2Cidr
+
+  BastionInstanceTypeParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /params/bastion_instance_type
+      Type: String
+      Value: !Ref BastionInstanceType

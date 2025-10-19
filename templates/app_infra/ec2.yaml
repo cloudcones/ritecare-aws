@@ -1,5 +1,173 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
+Parameters:
+  AppName:
+    Type: String
+
+  KeyPairName:
+    Type: String
+    Description: Enter a name for the key pair
+
+Resources:
+
+  KeyPairHelperRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: create-ec2-kp
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:CreateKeyPair
+                  - ec2:DeleteKeyPair
+                  - ec2:DescribeKeyPairs
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - secretsmanager:CreateSecret
+                  - secretsmanager:PutSecretValue
+                  - secretsmanager:DescribeSecret
+                  - secretsmanager:DeleteSecret
+                  - secretsmanager:TagResource
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - kms:Encrypt
+                  - kms:GenerateDataKey
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
+  KeyPairHelper:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Create/update/delete EC2 key pair and mirror private key in Secrets Manager
+      Role: !GetAtt KeyPairHelperRole.Arn
+      Runtime: python3.12
+      Handler: index.handler
+      Timeout: 180
+
+      Code:
+        ZipFile: |
+          import boto3, json, os, urllib.request
+          from botocore.exceptions import ClientError
+
+          ec2 = boto3.client('ec2')
+          sm  = boto3.client('secretsmanager')
+          ssm = boto3.client('ssm')
+
+          def respond(event, context, status, data=None, physical_id=None, reason=None, no_echo=False):
+            if not data: data = {}
+            response_body = json.dumps({
+              "Status": status,
+              "Reason": reason or f"See CloudWatch Logs: {context.log_stream_name}",
+              "PhysicalResourceId": physical_id or context.log_stream_name,
+              "StackId": event["StackId"],
+              "RequestId": event["RequestId"],
+              "LogicalResourceId": event["LogicalResourceId"],
+              "NoEcho": no_echo,
+              "Data": data
+            }).encode("utf-8")
+            req = urllib.request.Request(event["ResponseURL"], data=response_body, method="PUT")
+            req.add_header("Content-Type", "")
+            urllib.request.urlopen(req)
+
+          def get_kms_key():
+            path = os.environ.get("KMS_PARAM_PATH")
+            if not path:
+              return None
+            try:
+              r = ssm.get_parameter(Name=path)
+              return r["Parameter"]["Value"]
+            except ClientError as e:
+              # If param not found, fall back to default AWS managed key
+              if e.response["Error"]["Code"] == "ParameterNotFound":
+                return None
+              raise
+
+          def create_or_rotate_secret(secret_name, secret_string, kms_key_id):
+            # Create if missing, else put a new version
+            try:
+              sm.create_secret(Name=secret_name, SecretString=secret_string, KmsKeyId=kms_key_id)
+            except ClientError as e:
+              if e.response["Error"]["Code"] == "ResourceExistsException":
+                sm.put_secret_value(SecretId=secret_name, SecretString=secret_string)
+              else:
+                raise
+
+          def delete_secret_if_exists(secret_name):
+            try:
+              sm.describe_secret(SecretId=secret_name)
+            except ClientError as e:
+              if e.response["Error"]["Code"] in ("ResourceNotFoundException", "InvalidRequestException"):
+                return
+              raise
+            # RecoveryWindowInDays: set to 0 + ForceDeleteWithoutRecovery for immediate delete
+            sm.delete_secret(SecretId=secret_name, ForceDeleteWithoutRecovery=True)
+
+          def handler(event, context):
+            props = event["ResourceProperties"]
+            key_name   = props["KeyPairName"]
+            secret_name = props.get("SecretName", f"/ec2/keypairs/{key_name}")
+            kms_key_id = get_kms_key()
+
+            try:
+              if event["RequestType"] in ("Create", "Update"):
+                # If Update and key already exists, delete & recreate to ensure material matches secret
+                exists = False
+                try:
+                  ec2.describe_key_pairs(KeyNames=[key_name])
+                  exists = True
+                except ClientError as e:
+                  if e.response["Error"]["Code"] != "InvalidKeyPair.NotFound":
+                    raise
+
+                if exists and event["RequestType"] == "Update":
+                  ec2.delete_key_pair(KeyName=key_name)
+
+                # Create key pair (returns private material once)
+                kp = ec2.create_key_pair(KeyName=key_name)  # default RSA
+                pem = kp["KeyMaterial"]
+
+                create_or_rotate_secret(secret_name, pem, kms_key_id)
+
+                respond(event, context, "SUCCESS",
+                        data={"SecretName": secret_name, "KeyPairName": key_name},
+                        physical_id=key_name)
+
+              elif event["RequestType"] == "Delete":
+                # Delete both secret and key pair (ignore if gone)
+                try:
+                  ec2.delete_key_pair(KeyName=key_name)
+                except ClientError as e:
+                  if e.response["Error"]["Code"] != "InvalidKeyPair.NotFound":
+                    raise
+                delete_secret_if_exists(secret_name)
+                respond(event, context, "SUCCESS", data={}, physical_id=key_name)
+
+              else:
+                respond(event, context, "FAILED", reason=f"Unknown RequestType {event['RequestType']}")
+            except Exception as e:
+              respond(event, context, "FAILED", reason=str(e), physical_id=key_name)
+
+  CreateKeyPair:
+    Type: Custom::Ec2KeyToSecret
+    Properties:
+      ServiceToken: !GetAtt KeyPairHelper.Arn
+
   EC2IAMRole:
     Type: AWS::IAM::Role
     Properties:
@@ -21,3 +189,29 @@ AWSTemplateFormatVersion: '2010-09-09'
     Properties:
       Roles: 
         - !Ref EC2IAMRole
+
+  # BastionInstance:
+  #   Type: AWS::EC2::Instance
+  #   Properties:
+  #     IamInstanceProfile: !Ref EC2InstanceProfile
+  #     InstanceType: '{{resolve:ssm:/params/bastion_instance_type}}'
+  #     ImageId: !Ref AmiId
+  #     NetworkInterfaces:
+  #       - DeviceIndex: 0
+  #         SubnetId: !Ref PrivateSubnetId
+  #         Groups: [ !Ref BastionSG ]
+  #         AssociatePublicIpAddress: false
+  #     BlockDeviceMappings:
+  #       - DeviceName: /dev/xvda
+  #         Ebs:
+  #           VolumeSize: 8
+  #           VolumeType: gp3
+  #           Encrypted: true
+  #     MetadataOptions:
+  #       HttpEndpoint: enabled
+  #       HttpTokens: required   # enforce IMDSv2
+  #     Tags:
+  #       - Key: Name
+  #         Value: !Ref BastionName
+  #       - Key: env
+  #         Value: !Ref EnvName

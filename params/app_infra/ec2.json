@@ -2,5 +2,9 @@
   {
     "ParameterKey": "AppName",
     "ParameterValue": "ritecare"
-  }
+  },
+  {
+    "ParameterKey": "KeyPairName",
+    "ParameterValue": "ritecare-kp"
+  },
 ]

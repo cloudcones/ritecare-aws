@@ -115,7 +115,7 @@ Resources:
               Configuration:
                 PermissionModel: SERVICE_MANAGED
                 CallAs: DELEGATED_ADMIN
-                StackSetName: deploy-security-groups
+                StackSetName: deploy-ec2
                 MaxConcurrentPercentage: "50"
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
