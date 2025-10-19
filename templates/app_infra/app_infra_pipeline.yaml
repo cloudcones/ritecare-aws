@@ -33,7 +33,7 @@ Parameters:
 
   Region:
     Type: String
-    Default: us-east-2
+    Default: us-east-1
     Description: The AWS Region/s where the templates will be deplyed.
 
   TemplatesPath:

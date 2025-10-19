@@ -24,6 +24,7 @@ Resources:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       GroupId: !Ref DBSecurityGroup
+      IpProtocol: tcp
       FromPort: 5432
       ToPort: 5432
       SourceSecurityGroupId: !Ref EC2SecurityGroup 
