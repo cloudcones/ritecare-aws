@@ -13,7 +13,7 @@
   },
   {
     "ParameterKey": "AppAmiId",
-    "ParameterValue": "ami-0738eced830c09966"
+    "ParameterValue": "ami-00f8a853f4059dbec"
   },
   {
     "ParameterKey": "BastionEC2DiskSize",

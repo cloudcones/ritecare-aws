@@ -185,6 +185,7 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
       Tags:
         - Key: env
           Value: '{{resolve:ssm:/params/env_name}}'
@@ -235,3 +236,76 @@ Resources:
               VolumeType: gp3
               Encrypted: true
               DeleteOnTermination: "true"
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+        MaxBatchSize: 1
+        PauseTime: PT5M
+        WaitOnResourceSignals: false
+    Properties:
+      AutoScalingGroupName: !Sub "${AppName}-asg"
+      VPCZoneIdentifier: '{{resolve:ssm:/net/subnets/publicsubnet1/id}}','{{resolve:ssm:/net/subnets/publicsubnet2/id}}'
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      MinSize: 2 #!Ref ASGMinSize
+      MaxSize: 2 #!Ref ASGMaxSize
+      DesiredCapacity: 2 #!Ref ASGDesiredCapacity
+      TargetGroupARNs:
+        - !Ref TargetGroup
+      Tags:
+        - Key: Name
+          Value: !Sub "${AppName}-ec2-instance"
+          PropagateAtLaunch: true
+
+  # ASGCPUPolicy:
+  #   Type: AWS::AutoScaling::ScalingPolicy
+  #   Properties:
+  #     AutoScalingGroupName: !Ref AutoScalingGroup
+  #     PolicyType: TargetTrackingScaling
+  #     TargetTrackingConfiguration:
+  #       PredefinedMetricSpecification:
+  #         PredefinedMetricType: ASGAverageCPUUtilization
+  #       TargetValue: !Ref CPUPolicyTargetValue
+
+  # RequestCountScalingPolicy:
+  #   Type: AWS::AutoScaling::ScalingPolicy
+  #   Properties:
+  #     AutoScalingGroupName: !Ref AutoScalingGroup
+  #     PolicyType: TargetTrackingScaling
+  #     TargetTrackingConfiguration:
+  #       PredefinedMetricSpecification:
+  #         PredefinedMetricType: ALBRequestCountPerTarget
+  #         ResourceLabel: !Join 
+  #           - '/' 
+  #           - - !GetAtt ALB.LoadBalancerFullName
+  #             - !GetAtt TargetGroup.TargetGroupFullName
+  #       TargetValue: !Ref RequestCountValue
+
+  # ALB Target Group
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${AppName}-targetgroup"
+      VpcId: "{{resolve:ssm:/net/vpc/id}}"
+      Protocol: HTTP
+      Port: 80
+      TargetType: instance
+      HealthCheckPath: "/"
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 10
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 3
+      UnhealthyThresholdCount: 2
+      TargetGroupAttributes:
+        - Key: stickiness.enabled
+          Value: "true"
+        - Key: stickiness.type
+          Value: lb_cookie
+        - Key: stickiness.lb_cookie.duration_seconds
+          Value: "14400"
+        - Key: deregistration_delay.timeout_seconds
+          Value: '60'
