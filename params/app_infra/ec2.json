@@ -16,7 +16,7 @@
     "ParameterValue": "ami-0738eced830c09966"
   },
   {
-    "ParameterKey": "BastionEC2Disk1Size",
+    "ParameterKey": "BastionEC2DiskSize",
     "ParameterValue": "20"
   },
   {
