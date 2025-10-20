@@ -247,7 +247,9 @@ Resources:
         WaitOnResourceSignals: false
     Properties:
       AutoScalingGroupName: !Sub "${AppName}-asg"
-      VPCZoneIdentifier: '{{resolve:ssm:/net/subnets/publicsubnet1/id}}','{{resolve:ssm:/net/subnets/publicsubnet2/id}}'
+      VPCZoneIdentifier:
+        - '{{resolve:ssm:/net/subnets/publicsubnet1/id}}'
+        - '{{resolve:ssm:/net/subnets/publicsubnet2/id}}'
       LaunchTemplate:
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
