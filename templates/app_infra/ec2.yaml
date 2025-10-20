@@ -14,7 +14,7 @@ Parameters:
   AppAmiId:
     Type: String
 
-  BastionEC2Disk1Size:
+  BastionEC2DiskSize:
     Type: Number
 
   AppEC2Disk1Size:
