@@ -45,7 +45,7 @@ Resources:
 
       # AuthN: no static password + IAM auth enabled
       ManageMasterUserPassword: true            # Auto-generates and stores master password in Secrets Manager
-      # MasterUsername: !Ref MasterUsername
+      MasterUsername: 'postgres'
       EnableIAMDatabaseAuthentication: true     # Allow token-based IAM auth
 
       # Logs
@@ -58,7 +58,7 @@ Resources:
       # Serverless v2 scaling
       ServerlessV2ScalingConfiguration:
         MinCapacity: '{{resolve:ssm:/params/db_min_acu}}'
-        MaxCapacity: '{{resolve:ssm:/params/db_min_acu}}'
+        MaxCapacity: '{{resolve:ssm:/params/db_max_acu}}'
 
       # Tags:
       #   - Key: Name
