@@ -12,6 +12,8 @@
     "PGEngineVersion": "17.4",
     "DBMinACU": "1",
     "DBMaxACU": "4",
-    "AppInstanceType": "t3.large"
+    "AppInstanceType": "t3.large",
+    "ACMDomainName": "theritecare.com",
+    "ACMSAN": "*.theritecare.com"
   }
 }

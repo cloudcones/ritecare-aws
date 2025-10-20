@@ -48,6 +48,12 @@ Parameters:
 
   DBMaxACU:
     Type: String
+  
+  ACMDomainName:
+    Type: String
+
+  ACMSAN:
+    Type: String
 
 Resources:
   EnvParam:
@@ -140,3 +146,17 @@ Resources:
       Name: /params/db_max_acu
       Type: String
       Value: !Ref DBMaxACU
+
+  ACMDomainNameParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /params/acm_domain_name
+      Type: String
+      Value: !Ref ACMDomainName
+
+  ACMSANParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /params/acm_san
+      Type: String
+      Value: !Ref ACMSAN

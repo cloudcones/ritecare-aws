@@ -1,8 +1,20 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Create S3 bucket
 
+Parameters:
+  AppName:
+    Type: String
+
 Resources:
   Bucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}'
+
+  BucketArnParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub '/s3/${AppName}-bucket/arn'
+      # The value is derived from the S3 bucket's ARN attribute
+      Value: !GetAtt Bucket.Arn
+      Type: String

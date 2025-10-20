@@ -174,7 +174,7 @@ Resources:
       Type: String
       Value: !Ref KeyPairName
 
-  EC2IAMRole:
+  BastionEC2IAMRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -190,17 +190,51 @@ Resources:
         - Key: env
           Value: '{{resolve:ssm:/params/env_name}}'
 
-  EC2InstanceProfile:
+  BastionEC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub '{{resolve:ssm:/params/env_name}}-bastion'
+      Roles: 
+        - !Ref BastionEC2IAMRole
+
+  AppEC2IAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+      Policies:
+        - PolicyName: S3FullAccessPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "s3:*"
+                Resource:
+                  - !Sub '{{resolve:ssm:/s3/${AppName}-bucket/arn}}'
+                  - !Sub '{{resolve:ssm:/s3/${AppName}-bucket/arn/*}}'
+      Tags:
+        - Key: env
+          Value: '{{resolve:ssm:/params/env_name}}'
+
+  AppEC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       InstanceProfileName: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}'
       Roles: 
-        - !Ref EC2IAMRole
+        - !Ref AppEC2IAMRole
+   
 
   # BastionInstance:
   #   Type: AWS::EC2::Instance
   #   Properties:
-  #     IamInstanceProfile: !Ref EC2InstanceProfile
+  #     IamInstanceProfile: !Ref BastionEC2InstanceProfile
   #     InstanceType: '{{resolve:ssm:/params/bastion_instance_type}}'
   #     ImageId: !Ref BastionAmiId
   #     SubnetId: '{{resolve:ssm:/net/subnets/privatesubnet1/id}}' 
@@ -223,7 +257,7 @@ Resources:
       LaunchTemplateName: !Sub "${AppName}-ec2-template"
       LaunchTemplateData:
         IamInstanceProfile: 
-          Name: !Ref EC2InstanceProfile
+          Name: !Ref AppEC2InstanceProfile
         ImageId: !Ref AppAmiId
         InstanceType: '{{resolve:ssm:/params/app_instance_type}}'
         SecurityGroupIds:
@@ -311,3 +345,76 @@ Resources:
           Value: "14400"
         - Key: deregistration_delay.timeout_seconds
           Value: '60'
+
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${AppName}-loadbalancer"
+      Scheme: internet-facing
+      Type: application
+      SecurityGroups:
+        - '{{resolve:ssm:/ec2/securitygroups/lb-sg/id}}'
+      Subnets:
+        - '{{resolve:ssm:/net/subnets/publicsubnet1/id}}'
+        - '{{resolve:ssm:/net/subnets/publicsubnet2/id}}'
+      # LoadBalancerAttributes:
+      #   - Key: idle_timeout.timeout_seconds
+      #     Value: !Ref ALBIdleTimeout
+      Tags:
+        - Key: Name
+          Value: !Sub "${AppName}-alb"
+
+  ACMCertificate:
+      Type: AWS::CertificateManager::Certificate
+      Properties:
+        DomainName: '{{resolve:ssm:/params/acm_domain_name}}'
+        SubjectAlternativeNames:
+          - '{{resolve:ssm:/params/acm_san}}'
+        ValidationMethod: "DNS"
+
+  HTTPListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ALB
+      Protocol: HTTP
+      Port: 80
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig:
+            Protocol: HTTPS
+            Port: "443"
+            StatusCode: HTTP_301
+
+  WebACL:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      DefaultAction:
+        Allow: {}
+      Name: web-acl
+      Scope: REGIONAL
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName: web-acl
+      Rules:
+        - Name: AWSCommonRuleSet
+          Priority: 1
+          OverrideAction:
+            Count: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesCommonRuleSet
+              ExcludedRules:
+                - Name: SizeRestrictions_BODY
+                - Name: SizeRestrictions_QUERYSTRING
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: AWSCommonRuleSet
+ 
+  WebACLAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    Properties:
+      ResourceArn: !Ref ALB
+      WebACLArn: !GetAtt WebACL.Arn
