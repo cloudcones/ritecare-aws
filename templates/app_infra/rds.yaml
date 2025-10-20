@@ -31,7 +31,8 @@ Resources:
       EngineMode: provisioned
       DatabaseName: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}-pg-cluster'
       DBSubnetGroupName: !Ref DBSubnetGroup
-      VpcSecurityGroupIds: '{{resolve:ssm:/ec2/securitygroups/db-sg/id}}'
+      VpcSecurityGroupIds: 
+        - '{{resolve:ssm:/ec2/securitygroups/db-sg/id}}'
       Port: !Ref DBPort
 
       # BackupRetentionPeriod: !Ref DBBackupRetentionDays
