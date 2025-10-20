@@ -20,7 +20,7 @@
     "ParameterValue": "20"
   },
   {
-    "ParameterKey": "AppEC2Disk1Size",
+    "ParameterKey": "AppEC2DiskSize",
     "ParameterValue": "50"
   }
 ]

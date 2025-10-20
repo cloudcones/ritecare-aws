@@ -17,7 +17,7 @@ Parameters:
   BastionEC2DiskSize:
     Type: Number
 
-  AppEC2Disk1Size:
+  AppEC2DiskSize:
     Type: Number
 
 Resources:
@@ -232,7 +232,7 @@ Resources:
         BlockDeviceMappings:
           - DeviceName: "/dev/sda1"
             Ebs:
-              VolumeSize: !Ref AppEC2Disk1Size
+              VolumeSize: !Ref AppEC2DiskSize
               VolumeType: gp3
               Encrypted: true
               DeleteOnTermination: "true"
