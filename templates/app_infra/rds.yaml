@@ -27,7 +27,7 @@ Resources:
     Type: AWS::RDS::DBCluster
     Properties:
       Engine: aurora-postgresql
-      EngineVersion: '{{resolve:ssm:/params/pg_engine_version}'
+      EngineVersion: '{{resolve:ssm:/params/pg_engine_version}}'
       EngineMode: provisioned
       DatabaseName: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}-pg-cluster'
       DBSubnetGroupName: !Ref DBSubnetGroup
