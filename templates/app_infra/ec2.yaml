@@ -227,7 +227,7 @@ Resources:
         ImageId: !Ref AppAmiId
         InstanceType: !Ref AppAmiId
         SecurityGroupIds:
-          - '{{resolve:ssm:/ec2/securitygroups/app-ec2-sg/id]]'
+          - !Sub '{{resolve:ssm:/ec2/securitygroups/app-ec2-sg/id]]'
         KeyName: !Ref KeyPairName
         BlockDeviceMappings:
           - DeviceName: "/dev/sda1"
