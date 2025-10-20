@@ -10,5 +10,17 @@
   {
     "ParameterKey": "BastionAmiId",
     "ParameterValue": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+  },
+  {
+    "ParameterKey": "AppAmiId",
+    "ParameterValue": "ami-0738eced830c09966"
+  },
+  {
+    "ParameterKey": "BastionEC2Disk1Size",
+    "ParameterValue": "20"
+  },
+  {
+    "ParameterKey": "AppEC2Disk1Size",
+    "ParameterValue": "50"
   }
 ]

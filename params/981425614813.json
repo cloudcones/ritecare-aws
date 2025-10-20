@@ -11,6 +11,7 @@
     "BastionInstanceType": "t3.micro",
     "PGEngineVersion": "17.4",
     "DBMinACU": "1",
-    "DBMaxACU": "4"
+    "DBMaxACU": "4",
+    "AppInstanceType": "t3.large"
   }
 }

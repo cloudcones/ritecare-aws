@@ -11,6 +11,15 @@ Parameters:
   BastionAmiId:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
 
+  AppAmiId:
+    Type: String
+
+  BastionEC2Disk1Size:
+    Type: Number
+
+  AppEC2Disk1Size:
+    Type: Number
+
 Resources:
 
   KeyPairHelperRole:
@@ -197,9 +206,32 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
-            VolumeSize: 20
+            VolumeSize: !Ref BastionEC2DiskSize
             VolumeType: gp3
             Encrypted: true
       KeyName: !Ref KeyPairName
       SecurityGroupIds: 
         - '{{resolve:ssm:/ec2/securitygroups/bastion-sg/id}}'
+      Tags:
+      - Key: Name
+        Value: Bastion
+
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub "${AppName}-ec2-template"
+      LaunchTemplateData:
+        IamInstanceProfile: 
+          Name: !Ref EC2InstanceProfile
+        ImageId: !Ref AppAmiId
+        InstanceType: !Ref AppAmiId
+        SecurityGroupIds:
+          - '{{resolve:ssm:/ec2/securitygroups/app-ec2-sg/id]]'
+        KeyName: !Ref KeyPairName
+        BlockDeviceMappings:
+          - DeviceName: "/dev/sda1"
+            Ebs:
+              VolumeSize: !Ref AppEC2Disk1Size
+              VolumeType: gp3
+              Encrypted: true
+              DeleteOnTermination: "true"

@@ -37,6 +37,9 @@ Parameters:
   BastionInstanceType:
     Type: String
 
+  AppInstanceType:
+    Type: String
+
   PGEngineVersion:
     Type: String
 
@@ -109,6 +112,13 @@ Resources:
       Name: /params/bastion_instance_type
       Type: String
       Value: !Ref BastionInstanceType
+
+  AppInstanceTypeParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /params/app_instance_type
+      Type: String
+      Value: !Ref AppInstanceType
 
   PGEngineVersionParam:
     Type: AWS::SSM::Parameter
