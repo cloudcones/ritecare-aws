@@ -218,7 +218,7 @@ Resources:
                 Action: "s3:*"
                 Resource:
                   - !Sub '{{resolve:ssm:/s3/${AppName}-bucket/arn}}'
-                  - !Sub '{{resolve:ssm:/s3/${AppName}-bucket/arn/*}}'
+                  - !Sub '{{resolve:ssm:/s3/${AppName}-bucket/arn}}/*'
       Tags:
         - Key: env
           Value: '{{resolve:ssm:/params/env_name}}'
