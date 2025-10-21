@@ -71,6 +71,7 @@ Resources:
     Properties:
       DBClusterIdentifier: !Ref DBCluster
       DBInstanceClass: db.serverless
+      DBName: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}-db'
       Engine: aurora-postgresql
       PubliclyAccessible: false
       AutoMinorVersionUpgrade: true
