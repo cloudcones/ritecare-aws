@@ -230,26 +230,25 @@ Resources:
       Roles: 
         - !Ref AppEC2IAMRole
    
-
-  # BastionInstance:
-  #   Type: AWS::EC2::Instance
-  #   Properties:
-  #     IamInstanceProfile: !Ref BastionEC2InstanceProfile
-  #     InstanceType: '{{resolve:ssm:/params/bastion_instance_type}}'
-  #     ImageId: !Ref BastionAmiId
-  #     SubnetId: '{{resolve:ssm:/net/subnets/privatesubnet1/id}}' 
-  #     BlockDeviceMappings:
-  #       - DeviceName: /dev/xvda
-  #         Ebs:
-  #           VolumeSize: !Ref BastionEC2DiskSize
-  #           VolumeType: gp3
-  #           Encrypted: true
-  #     KeyName: !Ref KeyPairName
-  #     SecurityGroupIds: 
-  #       - '{{resolve:ssm:/ec2/securitygroups/bastion-sg/id}}'
-  #     Tags:
-  #     - Key: Name
-  #       Value: Bastion
+  BastionInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      IamInstanceProfile: !Ref BastionEC2InstanceProfile
+      InstanceType: '{{resolve:ssm:/params/bastion_instance_type}}'
+      ImageId: !Ref BastionAmiId
+      SubnetId: '{{resolve:ssm:/net/subnets/privatesubnet1/id}}' 
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref BastionEC2DiskSize
+            VolumeType: gp3
+            Encrypted: true
+      KeyName: !Ref KeyPairName
+      SecurityGroupIds: 
+        - '{{resolve:ssm:/ec2/securitygroups/bastion-sg/id}}'
+      Tags:
+      - Key: Name
+        Value: Bastion
 
   LaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
