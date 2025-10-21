@@ -30,6 +30,7 @@ Resources:
       EngineVersion: '{{resolve:ssm:/params/pg_engine_version}}'
       EngineMode: provisioned
       DatabaseName: !Sub '${AppName}DB'
+      DBClusterIdentifier: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}-cluster'
       DBSubnetGroupName: !Ref DBSubnetGroup
       VpcSecurityGroupIds: 
         - '{{resolve:ssm:/ec2/securitygroups/db-sg/id}}'
@@ -71,7 +72,6 @@ Resources:
     Properties:
       DBClusterIdentifier: !Ref DBCluster
       DBInstanceClass: db.serverless
-      DBName: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}-db'
       Engine: aurora-postgresql
       PubliclyAccessible: false
       AutoMinorVersionUpgrade: true
