@@ -195,7 +195,7 @@ Resources:
                 TemplatePath: !Sub "SourceOut::${TemplatesPath}/route53.yaml"
                 Parameters: !Sub "SourceOut::${ParametersPath}/route53.json"
                 Regions: !Ref Region
-              RunOrder: 1
+              RunOrder: 2
 
         #Deploy Infra Resources
         # - Name: Deploy-app-infra
