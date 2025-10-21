@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Create a Route 53 hosted zone
+
+Parameters:
+  PrivateDomainName:
+    Description: Name for private hosted zone
+    Type: String
+
+Resources:
+  PrivateHostedZone:
+    Type: AWS::Route53::HostedZone
+    Properties:
+      Name: !Sub '{{resolve:ssm:/params/env_name}}.${PrivateDomainName}'
+      VPCs:
+        -
+          VPCId: '{{resolve:ssm:/net/vpc/id}}'
+          VPCRegion: !Ref 'AWS::Region'
+
+# Parameter Store
+
+  PrivateHostedZoneIdParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Sub '/route53/private/${PrivateHostedZone.Name}/ID'
+      Value: !Ref PrivateHostedZone
+
+  PrivateHostedZoneNameParam:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Name: !Sub '/route53/private/${PrivateHostedZone.Name}/Name'
+      Value: !GetAtt PrivateHostedZone.Name

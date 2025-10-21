@@ -152,8 +152,7 @@ Resources:
               RunOrder: 1
               RoleArn: !Sub "arn:aws:iam::${ProdAccountId}:role/${TargetRoleName}"
 
-        # Deploy VPC stackset
-        - Name: Deploy-VPC
+        - Name: Deploy-Core-Infra
           Actions:
             - Name: deploy-vpc
               ActionTypeId:
@@ -173,6 +172,28 @@ Resources:
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 DeploymentTargets: !Ref WorkloadsOU
                 TemplatePath: !Sub "SourceOut::${TemplatesPath}/vpc.yaml"
+                Regions: !Ref Region
+              RunOrder: 1
+
+            - Name: deploy-route53
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormationStackSet
+                Version: "1"
+              InputArtifacts:
+                - Name: SourceOut
+              Configuration:
+                PermissionModel: SERVICE_MANAGED
+                CallAs: DELEGATED_ADMIN
+                StackSetName: deploy-route53
+                MaxConcurrentPercentage: "50"
+                FailureTolerancePercentage: "100"
+                ConcurrencyMode: SOFT_FAILURE_TOLERANCE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                DeploymentTargets: !Ref WorkloadsOU
+                TemplatePath: !Sub "SourceOut::${TemplatesPath}/route53.yaml"
+                Parameters: !Sub "SourceOut::${ParametersPath}/route53.json"
                 Regions: !Ref Region
               RunOrder: 1
 

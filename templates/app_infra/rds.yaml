@@ -80,6 +80,16 @@ Resources:
         - Key: Name
           Value: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}'
 
+  # DBRecordSet:
+  #     Type: AWS::Route53::RecordSet
+  #     Properties:
+  #       HostedZoneId: '{{resolve:ssm:/route53/private/${CompanyName}/ID}}'
+  #       Name: !Join [".", ["db", '{{resolve:ssm:/route53/private/${CompanyName}/Name}}']]  
+  #       Type: CNAME
+  #       TTL: '300'
+  #       ResourceRecords:
+  #         - !GetAtt DBCluster.Endpoint.Address
+
 # Outputs:
 #   ClusterArn:
 #     Description: ARN of the Aurora PostgreSQL Serverless v2 cluster
