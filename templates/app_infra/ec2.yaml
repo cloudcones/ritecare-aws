@@ -292,20 +292,6 @@ Resources:
         - Key: Name
           Value: !Sub '${AppName}-ec2-instance-b'
 
-  # Register both instances with the existing Target Group
-  EC2InstanceAtoTG:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroupAttachment
-    Properties:
-      TargetGroupArn: !Ref TargetGroup
-      TargetId: !Ref EC2InstanceA
-      # Port: 80   # (optional) only set if your Target Group expects a specific port override
-
-  EC2InstanceBtoTG:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroupAttachment
-    Properties:
-      TargetGroupArn: !Ref TargetGroup
-      TargetId: !Ref EC2InstanceB
-
   # AutoScalingGroup:
   #   Type: AWS::AutoScaling::AutoScalingGroup
   #   UpdatePolicy:
@@ -371,6 +357,11 @@ Resources:
       HealthCheckTimeoutSeconds: 5
       HealthyThresholdCount: 3
       UnhealthyThresholdCount: 2
+      Targets:
+        - Id: !Ref EC2InstanceA
+          Port: 80
+        - Id: !Ref EC2InstanceB
+          Port: 80
       TargetGroupAttributes:
         - Key: stickiness.enabled
           Value: "true"
@@ -380,6 +371,9 @@ Resources:
           Value: "14400"
         - Key: deregistration_delay.timeout_seconds
           Value: '60'
+      Tags:
+        - Key: Name
+          Value: !Sub "${AppName}-targetgroup"
 
   ALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
