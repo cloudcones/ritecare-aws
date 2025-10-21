@@ -270,31 +270,67 @@ Resources:
               Encrypted: true
               DeleteOnTermination: "true"
 
-  AutoScalingGroup:
-    Type: AWS::AutoScaling::AutoScalingGroup
-    UpdatePolicy:
-      AutoScalingRollingUpdate:
-        MinInstancesInService: 1
-        MaxBatchSize: 1
-        PauseTime: PT5M
-        WaitOnResourceSignals: false
+  EC2InstanceA:
+    Type: AWS::EC2::Instance
     Properties:
-      AutoScalingGroupName: !Sub "${AppName}-asg"
-      VPCZoneIdentifier:
-        - '{{resolve:ssm:/net/subnets/publicsubnet1/id}}'
-        - '{{resolve:ssm:/net/subnets/publicsubnet2/id}}'
       LaunchTemplate:
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
-      MinSize: 2 #!Ref ASGMinSize
-      MaxSize: 2 #!Ref ASGMaxSize
-      DesiredCapacity: 2 #!Ref ASGDesiredCapacity
-      TargetGroupARNs:
-        - !Ref TargetGroup
+      SubnetId: '{{resolve:ssm:/net/subnets/publicsubnet1/id}}'
       Tags:
         - Key: Name
-          Value: !Sub "${AppName}-ec2-instance"
-          PropagateAtLaunch: true
+          Value: !Sub '${AppName}-ec2-instance-a'
+
+  EC2InstanceB:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      SubnetId: '{{resolve:ssm:/net/subnets/publicsubnet2/id}}'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AppName}-ec2-instance-b'
+
+  # Register both instances with the existing Target Group
+  EC2InstanceAtoTG:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroupAttachment
+    Properties:
+      TargetGroupArn: !Ref TargetGroup
+      TargetId: !Ref EC2InstanceA
+      # Port: 80   # (optional) only set if your Target Group expects a specific port override
+
+  EC2InstanceBtoTG:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroupAttachment
+    Properties:
+      TargetGroupArn: !Ref TargetGroup
+      TargetId: !Ref EC2InstanceB
+
+  # AutoScalingGroup:
+  #   Type: AWS::AutoScaling::AutoScalingGroup
+  #   UpdatePolicy:
+  #     AutoScalingRollingUpdate:
+  #       MinInstancesInService: 1
+  #       MaxBatchSize: 1
+  #       PauseTime: PT5M
+  #       WaitOnResourceSignals: false
+  #   Properties:
+  #     AutoScalingGroupName: !Sub "${AppName}-asg"
+  #     VPCZoneIdentifier:
+  #       - '{{resolve:ssm:/net/subnets/publicsubnet1/id}}'
+  #       - '{{resolve:ssm:/net/subnets/publicsubnet2/id}}'
+  #     LaunchTemplate:
+  #       LaunchTemplateId: !Ref LaunchTemplate
+  #       Version: !GetAtt LaunchTemplate.LatestVersionNumber
+  #     MinSize: 2 #!Ref ASGMinSize
+  #     MaxSize: 2 #!Ref ASGMaxSize
+  #     DesiredCapacity: 2 #!Ref ASGDesiredCapacity
+  #     TargetGroupARNs:
+  #       - !Ref TargetGroup
+  #     Tags:
+  #       - Key: Name
+  #         Value: !Sub "${AppName}-ec2-instance"
+  #         PropagateAtLaunch: true
 
   # ASGCPUPolicy:
   #   Type: AWS::AutoScaling::ScalingPolicy
