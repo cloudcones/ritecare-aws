@@ -98,7 +98,9 @@ Resources:
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-                DeploymentTargets: !Ref DevOU
+                DeploymentTargets: 
+                  - !Ref DevOU
+                  - !Ref TestOU
                 TemplatePath: !Sub "SourceOut::${TemplatesPath}/security_groups.yaml"
                 Parameters: !Sub "SourceOut::${ParametersPath}/security_groups.json"
                 Regions: !Ref Region
@@ -120,7 +122,9 @@ Resources:
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-                DeploymentTargets: !Ref DevOU
+                DeploymentTargets: 
+                  - !Ref DevOU
+                  - !Ref TestOU
                 TemplatePath: !Sub "SourceOut::${TemplatesPath}/s3.yaml"
                 Parameters: !Sub "SourceOut::${ParametersPath}/s3.json"
                 Regions: !Ref Region
@@ -142,7 +146,9 @@ Resources:
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-                DeploymentTargets: !Ref DevOU
+                DeploymentTargets: 
+                  - !Ref DevOU
+                  - !Ref TestOU                
                 TemplatePath: !Sub "SourceOut::${TemplatesPath}/ec2.yaml"
                 Parameters: !Sub "SourceOut::${ParametersPath}/ec2.json"
                 Regions: !Ref Region
@@ -165,7 +171,9 @@ Resources:
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-                DeploymentTargets: !Ref DevOU
+                DeploymentTargets: 
+                  - !Ref DevOU
+                  - !Ref TestOU
                 TemplatePath: !Sub "SourceOut::${TemplatesPath}/rds.yaml"
                 Parameters: !Sub "SourceOut::${ParametersPath}/rds.json"
                 Regions: !Ref Region
