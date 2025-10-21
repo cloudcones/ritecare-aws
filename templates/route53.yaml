@@ -18,16 +18,16 @@ Resources:
 
 # Parameter Store
 
-  PrivateHostedZoneIdParam:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Type: String
-      Name: !Sub '/route53/private/${PrivateHostedZone/ID'
-      Value: !Ref PrivateHostedZone
+  # PrivateHostedZoneIdParam:
+  #   Type: AWS::SSM::Parameter
+  #   Properties:
+  #     Type: String
+  #     Name: !Sub '/route53/private/${PrivateHostedZone/ID'
+  #     Value: !Ref PrivateHostedZone
 
-  PrivateHostedZoneNameParam:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Type: String
-      Name: !Sub '/route53/private/${PrivateHostedZone}/Name'
-      Value: !GetAtt PrivateHostedZone.Name
+  # PrivateHostedZoneNameParam:
+  #   Type: AWS::SSM::Parameter
+  #   Properties:
+  #     Type: String
+  #     Name: !Sub '/route53/private/${PrivateHostedZone}/Name'
+  #     Value: !GetAtt PrivateHostedZone.Name
