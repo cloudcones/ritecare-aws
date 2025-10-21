@@ -193,7 +193,7 @@ Resources:
   BastionEC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      InstanceProfileName: !Sub '{{resolve:ssm:/params/env_name}}-bastion'
+      InstanceProfileName: !Sub '{{resolve:ssm:/params/env_name}}-bastion-instance-profile'
       Roles: 
         - !Ref BastionEC2IAMRole
 
@@ -226,7 +226,7 @@ Resources:
   AppEC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      InstanceProfileName: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}'
+      InstanceProfileName: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}-instance-profile'
       Roles: 
         - !Ref AppEC2IAMRole
    
