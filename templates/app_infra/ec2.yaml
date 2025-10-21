@@ -364,13 +364,13 @@ Resources:
         - Key: Name
           Value: !Sub "${AppName}-alb"
 
-  ACMCertificate:
-      Type: AWS::CertificateManager::Certificate
-      Properties:
-        DomainName: '{{resolve:ssm:/params/acm_domain_name}}'
-        SubjectAlternativeNames:
-          - '{{resolve:ssm:/params/acm_san}}'
-        ValidationMethod: "DNS"
+  # ACMCertificate:
+  #     Type: AWS::CertificateManager::Certificate
+  #     Properties:
+  #       DomainName: '{{resolve:ssm:/params/acm_domain_name}}'
+  #       SubjectAlternativeNames:
+  #         - '{{resolve:ssm:/params/acm_san}}'
+  #       ValidationMethod: "DNS"
 
   HTTPListener:
     Type: AWS::ElasticLoadBalancingV2::Listener

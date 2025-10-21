@@ -1,6 +1,6 @@
 {
   "Parameters" : {
-    "EnvName" : "Test",
+    "EnvName" : "test",
     "VpcCidr" : "10.2.0.0/16",
     "PublicSubnet1Cidr" : "10.2.1.0/24",
     "PublicSubnet2Cidr" : "10.2.2.0/24",
