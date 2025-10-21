@@ -22,6 +22,11 @@ Resources:
     Properties:
       GroupDescription: EC2 App Security Group
       VpcId: "{{resolve:ssm:/net/vpc/id}}"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
           Value: !Sub "${AppName}-ec2-sg"
