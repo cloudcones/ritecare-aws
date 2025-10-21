@@ -138,7 +138,7 @@ Resources:
     Properties:
       Name: /params/db_min_acu
       Type: String
-      Value: !Ref DBMaxACU
+      Value: !Ref DBMinACU
 
   DBMaxACUParam:
     Type: AWS::SSM::Parameter
