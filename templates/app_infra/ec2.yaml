@@ -414,6 +414,18 @@ Resources:
             Port: "443"
             StatusCode: HTTP_301
 
+  HTTPSListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !Ref ALB
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref ACMCertificate
+
   WebACL:
     Type: AWS::WAFv2::WebACL
     Properties:
