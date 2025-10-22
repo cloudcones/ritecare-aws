@@ -28,6 +28,14 @@ Resources:
           ToPort: 22
           CidrIp: 0.0.0.0/0
           Description: "SSH from anywhere (temporary for GitHub Actions)"
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref LBSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 8084
+          ToPort: 8084
+          SourceSecurityGroupId: !Ref LBSecurityGroup
       Tags:
         - Key: Name
           Value: !Sub "${AppName}-ec2-sg"
