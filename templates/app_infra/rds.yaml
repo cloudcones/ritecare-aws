@@ -70,7 +70,8 @@ Resources:
   DBInstance:
     Type: AWS::RDS::DBInstance
     Properties:
-      DBClusterIdentifier: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}-instance'
+      DBClusterIdentifier: !Ref DBCluster
+      DBInstanceIdentifier: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}-instance'
       DBInstanceClass: db.serverless
       Engine: aurora-postgresql
       PubliclyAccessible: false
