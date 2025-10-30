@@ -20,6 +20,11 @@ Parameters:
   AppEC2DiskSize:
     Type: Number
 
+  TopicArn:
+    Type: String
+    Description: SNS topic ARN to send notifications to
+
+
 Resources:
 
   KeyPairHelperRole:
@@ -459,3 +464,25 @@ Resources:
     Properties:
       ResourceArn: !Ref ALB
       WebACLArn: !GetAtt WebACL.Arn
+
+  UnhealthyTargetsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AppName}-tg-unhealthy-alarm"
+      Namespace: AWS/ApplicationELB
+      MetricName: UnHealthyHostCount
+      Dimensions:
+        - Name: TargetGroup
+          Value: !GetAtt TargetGroup.TargetGroupFullName
+        - Name: LoadBalancer
+          Value: !GetAtt ALB.LoadBalancerFullName
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      AlarmDescription: "Alarm when any target becomes unhealthy"
+      AlarmActions:
+        - !Ref TopicArn
+      OKActions:
+        - !Ref TopicArn

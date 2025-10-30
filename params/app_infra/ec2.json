@@ -22,5 +22,9 @@
   {
     "ParameterKey": "AppEC2DiskSize",
     "ParameterValue": "50"
+  },
+  {
+    "ParameterKey": "TopicArn",
+    "ParameterValue": "arn:aws:sns:us-east-1:936777225246:aws-infra-alerts"
   }
 ]

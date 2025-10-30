@@ -1,0 +1,129 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Central SNS topic for org-wide CloudWatch alarms
+
+Parameters:
+  OrgId:
+    Type: String
+    Description: AWS Organizations ID (e.g., o-abcd1234)
+  TopicDisplayName:
+    Type: String
+    Description: Display name for the SNS topic
+  TopicName:
+    Type: String
+    Description: SNS topic name
+  CreateChatbot:
+    Type: String
+    AllowedValues: ["Yes","No"]
+    Default: "No"
+  ConfigurationName:
+    Type: String
+    Default: ""
+    Description: AWS Chatbot configuration name (required if CreateChatbot=Yes)
+  ChannelID:
+    Type: String
+    Default: ""
+    Description: Slack channel ID (required if CreateChatbot=Yes)
+  WorkSpaceID:
+    Type: String
+    Default: ""
+    Description: Slack workspace ID (required if CreateChatbot=Yes)
+
+  # Email subscribers (leave blank to skip)
+  Email1:  { Type: String, Default: "" }
+  Email2:  { Type: String, Default: "" }
+  Email3:  { Type: String, Default: "" }
+  Email4:  { Type: String, Default: "" }
+  Email5:  { Type: String, Default: "" }
+
+  # SMS subscribers (E.164, e.g., +15551234567; leave blank to skip)
+  Sms1:  { Type: String, Default: "" }
+  Sms2:  { Type: String, Default: "" }
+  Sms3:  { Type: String, Default: "" }
+  Sms4:  { Type: String, Default: "" }
+  Sms5:  { Type: String, Default: "" }
+
+Conditions:
+  DoChatbot: !Equals [!Ref CreateChatbot, "Yes"]
+
+  HasEmail1:  !Not [!Equals [!Ref Email1,  ""]]
+  HasEmail2:  !Not [!Equals [!Ref Email2,  ""]]
+  HasEmail3:  !Not [!Equals [!Ref Email3,  ""]]
+  HasEmail4:  !Not [!Equals [!Ref Email4,  ""]]
+  HasEmail5:  !Not [!Equals [!Ref Email5,  ""]]
+
+  HasSms1:  !Not [!Equals [!Ref Sms1,  ""]]
+  HasSms2:  !Not [!Equals [!Ref Sms2,  ""]]
+  HasSms3:  !Not [!Equals [!Ref Sms3,  ""]]
+  HasSms4:  !Not [!Equals [!Ref Sms4,  ""]]
+  HasSms5:  !Not [!Equals [!Ref Sms5,  ""]]
+
+Resources:
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: !Ref TopicDisplayName
+      TopicName:   !Ref TopicName
+
+  SNSTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics: [ !Ref SNSTopic ]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowOrgCloudWatchPublish
+            Effect: Allow
+            Principal: { Service: cloudwatch.amazonaws.com }
+            Action: sns:Publish
+            Resource: !Ref SNSTopic
+            Condition:
+              StringEquals:
+                aws:PrincipalOrgID: !Ref OrgId
+
+  # Email subscriptions
+  EmailSub1:  { Type: AWS::SNS::Subscription, Condition: HasEmail1,  Properties: { TopicArn: !Ref SNSTopic, Protocol: email, Endpoint: !Ref Email1  } }
+  EmailSub2:  { Type: AWS::SNS::Subscription, Condition: HasEmail2,  Properties: { TopicArn: !Ref SNSTopic, Protocol: email, Endpoint: !Ref Email2  } }
+  EmailSub3:  { Type: AWS::SNS::Subscription, Condition: HasEmail3,  Properties: { TopicArn: !Ref SNSTopic, Protocol: email, Endpoint: !Ref Email3  } }
+  EmailSub4:  { Type: AWS::SNS::Subscription, Condition: HasEmail4,  Properties: { TopicArn: !Ref SNSTopic, Protocol: email, Endpoint: !Ref Email4  } }
+  EmailSub5:  { Type: AWS::SNS::Subscription, Condition: HasEmail5,  Properties: { TopicArn: !Ref SNSTopic, Protocol: email, Endpoint: !Ref Email5  } }
+
+  # SMS subscriptions
+  SmsSub1:  { Type: AWS::SNS::Subscription, Condition: HasSms1,  Properties: { TopicArn: !Ref SNSTopic, Protocol: sms, Endpoint: !Ref Sms1  } }
+  SmsSub2:  { Type: AWS::SNS::Subscription, Condition: HasSms2,  Properties: { TopicArn: !Ref SNSTopic, Protocol: sms, Endpoint: !Ref Sms2  } }
+  SmsSub3:  { Type: AWS::SNS::Subscription, Condition: HasSms3,  Properties: { TopicArn: !Ref SNSTopic, Protocol: sms, Endpoint: !Ref Sms3  } }
+  SmsSub4:  { Type: AWS::SNS::Subscription, Condition: HasSms4,  Properties: { TopicArn: !Ref SNSTopic, Protocol: sms, Endpoint: !Ref Sms4  } }
+  SmsSub5:  { Type: AWS::SNS::Subscription, Condition: HasSms5,  Properties: { TopicArn: !Ref SNSTopic, Protocol: sms, Endpoint: !Ref Sms5  } }
+
+  AmazonQRole:
+    Type: AWS::IAM::Role
+    Condition: DoChatbot
+    Properties:
+      RoleName: !Sub "Custom-AmazonQ-Role-${ConfigurationName}"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: chatbot.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonQDeveloperAccess
+
+  SlackChannelConfiguration:
+    Type: AWS::Chatbot::SlackChannelConfiguration
+    Condition: DoChatbot
+    Properties:
+      ConfigurationName: !Ref ConfigurationName
+      IamRoleArn: !GetAtt AmazonQRole.Arn
+      GuardrailPolicies:
+        - arn:aws:iam::aws:policy/ReadOnlyAccess
+      SlackChannelId:  !Ref ChannelID
+      SlackWorkspaceId: !Ref WorkSpaceID
+      SnsTopicArns: [ !Ref SNSTopic ]
+      LoggingLevel: INFO
+
+  SNSTopicSSM:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name:  !Sub "/sns/topics/${TopicName}/arn"
+      Value: !Ref SNSTopic
+      Type: String
