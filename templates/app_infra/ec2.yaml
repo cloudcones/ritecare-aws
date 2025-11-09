@@ -9,7 +9,7 @@ Parameters:
     Description: Enter a name for the key pair
 
   BastionAmiId:
-    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Type: String
 
   AppAmiId:
     Type: String
