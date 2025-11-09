@@ -71,9 +71,10 @@ Resources:
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Sid: AllowOrgCloudWatchPublish
+          - Sid: AllowOrgPublish
             Effect: Allow
-            Principal: { Service: cloudwatch.amazonaws.com }
+            Principal: 
+              AWS: "*"
             Action: sns:Publish
             Resource: !Ref SNSTopic
             Condition:

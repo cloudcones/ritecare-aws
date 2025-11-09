@@ -9,7 +9,7 @@
   },
   {
     "ParameterKey": "BastionAmiId",
-    "ParameterValue": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+    "ParameterValue": "ami-0bdd88bd06d16ba03"
   },
   {
     "ParameterKey": "AppAmiId",

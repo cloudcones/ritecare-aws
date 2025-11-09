@@ -126,7 +126,7 @@ Resources:
                 Regions: !Ref Region
               RunOrder: 2
 
-            - Name: deploy-ec2
+            - Name: deploy-ec2-dev-test
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -142,14 +142,13 @@ Resources:
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-                DeploymentTargets: !Sub "${DevOU},${TestOU},${ProdOU}"
+                DeploymentTargets: !Sub "${DevOU},${TestOU}"
                 TemplatePath: !Sub "SourceOut::${TemplatesPath}/ec2.yaml"
                 Parameters: !Sub "SourceOut::${ParametersPath}/ec2.json"
                 Regions: !Ref Region
               RunOrder: 3
 
-
-            - Name: deploy-rds
+            - Name: deploy-rds-dev-test
               ActionTypeId:
                 Category: Deploy
                 Owner: AWS
@@ -165,8 +164,61 @@ Resources:
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-                DeploymentTargets: !Sub "${DevOU},${TestOU},${ProdOU}"
+                DeploymentTargets: !Sub "${DevOU},${TestOU}"
                 TemplatePath: !Sub "SourceOut::${TemplatesPath}/rds.yaml"
                 Parameters: !Sub "SourceOut::${ParametersPath}/rds.json"
                 Regions: !Ref Region
               RunOrder: 4
+
+            - Name: Approve-Prod
+              ActionTypeId: { Category: Approval, Owner: AWS, Provider: Manual, Version: 1 }
+              # Configuration:
+              #   NotificationArn: !Ref TopicArn
+              #   CustomData: "Pipeline is waiting for approval"
+              RunOrder: 5
+
+            - Name: deploy-ec2-prod
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormationStackSet
+                Version: "1"
+              InputArtifacts:
+                - Name: SourceOut
+              Configuration:
+                PermissionModel: SERVICE_MANAGED
+                CallAs: DELEGATED_ADMIN
+                StackSetName: deploy-ec2
+                MaxConcurrentPercentage: "50"
+                FailureTolerancePercentage: "100"
+                ConcurrencyMode: SOFT_FAILURE_TOLERANCE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                DeploymentTargets: !Sub "${ProdOU}"
+                TemplatePath: !Sub "SourceOut::${TemplatesPath}/ec2.yaml"
+                Parameters: !Sub "SourceOut::${ParametersPath}/ec2.json"
+                Regions: !Ref Region
+              RunOrder: 6
+
+            - Name: deploy-rds-prod
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormationStackSet
+                Version: "1"
+              InputArtifacts:
+                - Name: SourceOut
+              Configuration:
+                PermissionModel: SERVICE_MANAGED
+                CallAs: DELEGATED_ADMIN
+                StackSetName: deploy-rds
+                MaxConcurrentPercentage: "50"
+                FailureTolerancePercentage: "100"
+                ConcurrencyMode: SOFT_FAILURE_TOLERANCE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                DeploymentTargets: !Sub "${ProdOU}"
+                TemplatePath: !Sub "SourceOut::${TemplatesPath}/rds.yaml"
+                Parameters: !Sub "SourceOut::${ParametersPath}/rds.json"
+                Regions: !Ref Region
+              RunOrder: 7
+
+
