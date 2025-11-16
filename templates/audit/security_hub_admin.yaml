@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Central Security Hub Configuration for Delegated Administrator Account
+
+Resources:
+
+  SecurityHubOrganizationConfiguration:
+    Type: AWS::SecurityHub::OrganizationConfiguration
+    Properties:
+      AutoEnable: true 
+      AutoEnableStandards: DEFAULT 
+      ConfigurationType: LOCAL
+
+  SecurityHubFindingAggregator:
+    Type: AWS::SecurityHub::FindingAggregator
+    Properties:
+      RegionLinkingMode: ALL_REGIONS

@@ -197,73 +197,23 @@ Resources:
                 Regions: !Ref Region
               RunOrder: 2
 
-        #Deploy Infra Resources
-        # - Name: Deploy-app-infra
-        #   Actions:
-
-        #     - Name: deploy-ec2
-        #       ActionTypeId:
-        #         Category: Deploy
-        #         Owner: AWS
-        #         Provider: CloudFormationStackSet
-        #         Version: "1"
-        #       InputArtifacts:
-        #         - Name: SourceOut
-        #       Configuration:
-        #         PermissionModel: SERVICE_MANAGED
-        #         CallAs: DELEGATED_ADMIN
-        #         StackSetName: deploy-ec2
-        #         MaxConcurrentPercentage: "50"
-        #         FailureTolerancePercentage: "100"
-        #         ConcurrencyMode: SOFT_FAILURE_TOLERANCE
-        #         Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-        #         DeploymentTargets: !Ref DevOU
-        #         TemplatePath: !Sub "SourceOut::${TemplatesPath}/ec2.yaml"
-        #         Regions: !Ref Region
-        #       RunOrder: 1
-
-
-            # - Name: Deploy-ec2-DEV
-            #   ActionTypeId:
-            #     Category: Deploy
-            #     Owner: AWS
-            #     Provider: CloudFormation
-            #     Version: '1'
-            #   InputArtifacts:
-            #     - Name: SourceOut
-            #   Configuration:
-            #     ActionMode: CREATE_UPDATE
-            #     StackName: Deploy-ec2
-            #     TemplatePath: !Sub SourceOut::${TemplatesPath}/ec2.yaml
-            #     #TemplateConfiguration: !Sub "SourceOut::${ParametersPath}/${DevAccountId}.json"
-            #     Capabilities: CAPABILITY_NAMED_IAM
-            #     RoleArn: !Sub "arn:aws:iam::${DevAccountId}:role/${TargetRoleName}"
-            #   Region: !Ref Region
-            #   RunOrder: 1
-            #   RoleArn: !Sub "arn:aws:iam::${DevAccountId}:role/${TargetRoleName}"
-
-        #     # - Name: deploy-rds
-        #     #   ActionTypeId:
-        #     #     Category: Deploy
-        #     #     Owner: AWS
-        #     #     Provider: CloudFormationStackSet
-        #     #     Version: "1"
-        #     #   InputArtifacts:
-        #     #     - Name: SourceOut
-        #     #   Configuration:
-        #     #     PermissionModel: SERVICE_MANAGED
-        #     #     CallAs: DELEGATED_ADMIN
-        #     #     StackSetName: deploy-rds
-        #     #     MaxConcurrentPercentage: "50"
-        #     #     FailureTolerancePercentage: "100"
-        #     #     ConcurrencyMode: SOFT_FAILURE_TOLERANCE
-        #     #     Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
-        #     #     DeploymentTargets:
-        #     #         Accounts: 
-        #     #           - !Ref ProdAccountId
-        #     #         OrganizationalUnitIds:
-        #     #           - !Ref WorkloadsOU
-        #     #         AccountFilterType: "INTERSECTION"
-        #     #     TemplatePath: !Sub "SourceOut::${TemplatesPath}/rds.yaml"
-        #     #     Regions: !Ref Region
-        #     #   RunOrder: 2
+            - Name: deploy-security-hub
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormationStackSet
+                Version: "1"
+              InputArtifacts:
+                - Name: SourceOut
+              Configuration:
+                PermissionModel: SERVICE_MANAGED
+                CallAs: DELEGATED_ADMIN
+                StackSetName: deploy-security-hub
+                MaxConcurrentPercentage: "50"
+                FailureTolerancePercentage: "100"
+                ConcurrencyMode: SOFT_FAILURE_TOLERANCE
+                Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                DeploymentTargets: !Ref WorkloadsOU
+                TemplatePath: !Sub "SourceOut::${TemplatesPath}/security)hub.yaml"
+                Regions: !Ref Region
+              RunOrder: 2

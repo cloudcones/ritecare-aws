@@ -1,0 +1,12 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Designate a Security Hub Delegated Administrator
+Parameters:
+  DelegatedAdminAccountId:
+    Type: String
+    Description: The Account ID of the member account to be the Security Hub Delegated Administrator.
+
+Resources:
+  SecurityHubDelegatedAdmin:
+    Type: AWS::SecurityHub::DelegatedAdmin
+    Properties:
+      AdminAccountId: !Ref DelegatedAdminAccountId

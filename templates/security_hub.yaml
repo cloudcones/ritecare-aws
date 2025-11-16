@@ -1,0 +1,10 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Enable AWS Security Hub and default standards in this account/region
+
+Resources:
+  SecurityHubHub:
+    Type: AWS::SecurityHub::Hub
+    Properties:
+      AutoEnableControls: true
+      ControlFindingGenerator: STANDARD_CONTROL
+      EnableDefaultStandards: true
