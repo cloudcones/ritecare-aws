@@ -214,6 +214,6 @@ Resources:
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
                 Capabilities: CAPABILITY_NAMED_IAM,CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
                 DeploymentTargets: !Ref WorkloadsOU
-                TemplatePath: !Sub "SourceOut::${TemplatesPath}/security)hub.yaml"
+                TemplatePath: !Sub "SourceOut::${TemplatesPath}/security_hub.yaml"
                 Regions: !Ref Region
-              RunOrder: 2
+              RunOrder: 3

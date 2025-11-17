@@ -1,13 +1,17 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Central Security Hub Configuration for Delegated Administrator Account
 
-Resources:
+Parameters:
+  OrgId:
+    Type: String
+    Description: AWS Organizations ID (e.g., o-abcd1234)
 
+Resources:
   SecurityHubOrganizationConfiguration:
     Type: AWS::SecurityHub::OrganizationConfiguration
     Properties:
-      AutoEnable: true 
-      AutoEnableStandards: DEFAULT 
+      AutoEnable: true
+      AutoEnableStandards: DEFAULT
       ConfigurationType: LOCAL
 
   SecurityHubFindingAggregator:

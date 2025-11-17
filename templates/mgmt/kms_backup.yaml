@@ -38,6 +38,7 @@ Resources:
               - kms:CreateGrant
               - kms:ListGrants
               - kms:RevokeGrant
+              - kms:ReplicateKey
             Resource: "*"
             Condition:
               StringEquals:
@@ -46,5 +47,5 @@ Resources:
   KeyAlias:
     Type: AWS::KMS::Alias
     Properties:
-      AliasName: /alias/backup
+      AliasName: alias/central-backup
       TargetKeyId: !Ref KmsKey
