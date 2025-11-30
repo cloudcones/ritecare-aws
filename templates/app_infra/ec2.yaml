@@ -285,6 +285,8 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub '${AppName}-ec2-instance-a'
+        - Key: aws-control-tower-backupdaily
+          Value: "true"
 
   EC2InstanceB:
     Type: AWS::EC2::Instance
