@@ -81,8 +81,8 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}'
-          - Key: aws-control-tower-backupdaily
-            Value: "true"
+        - Key: aws-control-tower-backupdaily
+          Value: "true"
 
   # DBRecordSet:
   #     Type: AWS::Route53::RecordSet
