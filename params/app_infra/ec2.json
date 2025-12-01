@@ -26,5 +26,9 @@
   {
     "ParameterKey": "TopicArn",
     "ParameterValue": "arn:aws:sns:us-east-1:936777225246:aws-infra-alerts"
-  }
+  },
+  {
+    "ParameterKey": "CpuHighThreshold",
+    "ParameterValue": "1"
+  } 
 ]
