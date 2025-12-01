@@ -24,6 +24,9 @@ Parameters:
     Type: String
     Description: SNS topic ARN to send notifications to
 
+  CpuHighThreshold:
+    Type: Number
+    Description: CPUUtilization threshold (%) for EC2 high-CPU alarms
 
 Resources:
 
@@ -484,6 +487,46 @@ Resources:
       Threshold: 0
       ComparisonOperator: GreaterThanThreshold
       AlarmDescription: "Alarm when any target becomes unhealthy"
+      AlarmActions:
+        - !Ref TopicArn
+      OKActions:
+        - !Ref TopicArn
+
+EC2InstanceACPUHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AppName}-instance-a-cpu-high"
+      AlarmDescription: "Alarm when CPU utilization for EC2 Instance A exceeds ${CpuHighThreshold}%"
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: !Ref CpuHighThreshold
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref EC2InstanceA
+      AlarmActions:
+        - !Ref TopicArn
+      OKActions:
+        - !Ref TopicArn
+
+  EC2InstanceBCPUHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AppName}-instance-b-cpu-high"
+      AlarmDescription: "Alarm when CPU utilization for EC2 Instance B exceeds ${CpuHighThreshold}%"
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: !Ref CpuHighThreshold
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref EC2InstanceB
       AlarmActions:
         - !Ref TopicArn
       OKActions:

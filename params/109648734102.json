@@ -14,6 +14,7 @@
     "DBMaxACU": "2",
     "AppInstanceType": "t3.medium",
     "ACMDomainName": "theritecare.com",
-    "ACMSAN": "*.theritecare.com"
+    "ACMSAN": "*.theritecare.com",
+    "CpuHighThreshold": "1"
   }
 }

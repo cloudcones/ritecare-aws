@@ -149,7 +149,7 @@ Resources:
               Configuration:
                 PermissionModel: SERVICE_MANAGED
                 CallAs: DELEGATED_ADMIN
-                StackSetName: deploy-ec2-dev-test
+                StackSetName: deploy-ec2
                 MaxConcurrentPercentage: "50"
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
@@ -171,7 +171,7 @@ Resources:
               Configuration:
                 PermissionModel: SERVICE_MANAGED
                 CallAs: DELEGATED_ADMIN
-                StackSetName: deploy-rds-dev-test
+                StackSetName: deploy-rds
                 MaxConcurrentPercentage: "50"
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
@@ -204,7 +204,7 @@ Resources:
               Configuration:
                 PermissionModel: SERVICE_MANAGED
                 CallAs: DELEGATED_ADMIN
-                StackSetName: deploy-ec2-prod
+                StackSetName: deploy-ec2
                 MaxConcurrentPercentage: "50"
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
@@ -226,7 +226,7 @@ Resources:
               Configuration:
                 PermissionModel: SERVICE_MANAGED
                 CallAs: DELEGATED_ADMIN
-                StackSetName: deploy-rds-prod
+                StackSetName: deploy-rds
                 MaxConcurrentPercentage: "50"
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
