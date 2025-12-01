@@ -29,6 +29,6 @@
   },
   {
     "ParameterKey": "CpuHighThreshold",
-    "ParameterValue": "1"
+    "ParameterValue": "50"
   } 
 ]

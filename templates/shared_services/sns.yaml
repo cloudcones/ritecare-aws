@@ -71,15 +71,24 @@ Resources:
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Sid: AllowOrgPublish
+          # - Sid: AllowOrgPublish
+          #   Effect: Allow
+          #   Principal:
+          #     AWS: "*"
+          #   Action: sns:Publish
+          #   Resource: !Ref SNSTopic
+          #   Condition:
+          #     StringEquals:
+          #       aws:PrincipalOrgID: !Ref OrgId
+          - Sid: AllowCloudWatchPublish
             Effect: Allow
-            Principal: 
-              AWS: "*"
+            Principal:
+              Service: cloudwatch.amazonaws.com 
             Action: sns:Publish
             Resource: !Ref SNSTopic
-            Condition:
-              StringEquals:
-                aws:PrincipalOrgID: !Ref OrgId
+            # Condition:
+            #   StringEquals:
+            #     aws:PrincipalOrgID: !Ref OrgId
 
   # Email subscriptions
   EmailSub1:  { Type: AWS::SNS::Subscription, Condition: HasEmail1,  Properties: { TopicArn: !Ref SNSTopic, Protocol: email, Endpoint: !Ref Email1  } }
