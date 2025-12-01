@@ -51,13 +51,13 @@ Parameters:
 
 Resources:
 
-  ProdApprovalTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: !Sub "${PipelineName}-prod-approval"
-      Subscription:
-        - Protocol: email
-          Endpoint: !Ref ApprovalEmail
+  # ProdApprovalTopic:
+  #   Type: AWS::SNS::Topic
+  #   Properties:
+  #     TopicName: !Sub "${PipelineName}-prod-approval"
+  #     Subscription:
+  #       - Protocol: email
+  #         Endpoint: !Ref ApprovalEmail
 
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
@@ -149,7 +149,7 @@ Resources:
               Configuration:
                 PermissionModel: SERVICE_MANAGED
                 CallAs: DELEGATED_ADMIN
-                StackSetName: deploy-ec2
+                StackSetName: deploy-ec2-dev-test
                 MaxConcurrentPercentage: "50"
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
@@ -171,7 +171,7 @@ Resources:
               Configuration:
                 PermissionModel: SERVICE_MANAGED
                 CallAs: DELEGATED_ADMIN
-                StackSetName: deploy-rds
+                StackSetName: deploy-rds-dev-test
                 MaxConcurrentPercentage: "50"
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
@@ -188,9 +188,9 @@ Resources:
                 Owner: AWS
                 Provider: Manual
                 Version: 1
-              Configuration:
-                NotificationArn: !Ref ProdApprovalTopic
-                CustomData: "Pipeline is waiting for prod deployment approval."
+              # Configuration:
+              #   NotificationArn: !Ref ProdApprovalTopic
+              #   CustomData: "Pipeline is waiting for prod deployment approval."
               RunOrder: 5
 
             - Name: deploy-ec2-prod
@@ -204,7 +204,7 @@ Resources:
               Configuration:
                 PermissionModel: SERVICE_MANAGED
                 CallAs: DELEGATED_ADMIN
-                StackSetName: deploy-ec2
+                StackSetName: deploy-ec2-prod
                 MaxConcurrentPercentage: "50"
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
@@ -226,7 +226,7 @@ Resources:
               Configuration:
                 PermissionModel: SERVICE_MANAGED
                 CallAs: DELEGATED_ADMIN
-                StackSetName: deploy-rds
+                StackSetName: deploy-rds-prod
                 MaxConcurrentPercentage: "50"
                 FailureTolerancePercentage: "100"
                 ConcurrencyMode: SOFT_FAILURE_TOLERANCE
