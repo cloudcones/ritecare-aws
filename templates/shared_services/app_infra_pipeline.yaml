@@ -12,20 +12,20 @@ Parameters:
 
   DevOU:
     Type: String
-    Description: The OU for the dev environment.
+    Description: The OU ID for the dev environment.
 
   TestOU:
     Type: String
-    Description: The OU for the test environment.
+    Description: The OU ID for the test environment.
 
   ProdOU:
     Type: String
-    Description: The OU for the prodv environment.
+    Description: The OU ID for the prod environment.
 
-  TargetRoleName:
-    Type: String
-    Default: cfn-deploy
-    Description: Name of the role in the target accounts
+  # TargetRoleName:
+  #   Type: String
+  #   Default: cfn-deploy
+  #   Description: Name of the role in the target accounts
 
   PipelineName:
     Type: String
@@ -43,9 +43,21 @@ Parameters:
   ParametersPath:
     Type: String
     Description: Path for the CloudFormation parameters files
+    
+  ApprovalEmail:
+    Type: String
+    Description: Email address to subscribe to the prod approval SNS topic.
 
 
 Resources:
+
+  ProdApprovalTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "${PipelineName}-prod-approval"
+      Subscription:
+        - Protocol: email
+          Endpoint: !Ref ApprovalEmail
 
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
@@ -171,10 +183,14 @@ Resources:
               RunOrder: 4 
 
             - Name: Approve-Prod
-              ActionTypeId: { Category: Approval, Owner: AWS, Provider: Manual, Version: 1 }
-              # Configuration:
-              #   NotificationArn: !Ref TopicArn
-              #   CustomData: "Pipeline is waiting for approval"
+              ActionTypeId:
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: 1
+              Configuration:
+                NotificationArn: !Ref ProdApprovalTopic
+                CustomData: "Pipeline is waiting for prod deployment approval."
               RunOrder: 5
 
             - Name: deploy-ec2-prod
