@@ -23,66 +23,66 @@ Resources:
         - Key: Name
           Value: "postgresql-subnets"
 
-  DBCluster:
-    Type: AWS::RDS::DBCluster
-    Properties:
-      Engine: aurora-postgresql
-      EngineVersion: '{{resolve:ssm:/params/pg_engine_version}}'
-      EngineMode: provisioned
-      DatabaseName: !Sub '${AppName}DB'
-      DBClusterIdentifier: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}-cluster'
-      DBSubnetGroupName: !Ref DBSubnetGroup
-      VpcSecurityGroupIds: 
-        - '{{resolve:ssm:/ec2/securitygroups/db-sg/id}}'
-      Port: !Ref DBPort
+  # DBCluster:
+  #   Type: AWS::RDS::DBCluster
+  #   Properties:
+  #     Engine: aurora-postgresql
+  #     EngineVersion: '{{resolve:ssm:/params/pg_engine_version}}'
+  #     EngineMode: provisioned
+  #     DatabaseName: !Sub '${AppName}DB'
+  #     DBClusterIdentifier: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}-cluster'
+  #     DBSubnetGroupName: !Ref DBSubnetGroup
+  #     VpcSecurityGroupIds: 
+  #       - '{{resolve:ssm:/ec2/securitygroups/db-sg/id}}'
+  #     Port: !Ref DBPort
 
-      # BackupRetentionPeriod: !Ref DBBackupRetentionDays
-      # PreferredBackupWindow: "06:00-07:00"
-      # PreferredMaintenanceWindow: "sat:07:00-sun:08:00"
+  #     # BackupRetentionPeriod: !Ref DBBackupRetentionDays
+  #     # PreferredBackupWindow: "06:00-07:00"
+  #     # PreferredMaintenanceWindow: "sat:07:00-sun:08:00"
 
-      # Encryption
-      StorageEncrypted: true
-      # KmsKeyId: !If [UseKmsKey, !Ref KmsKeyArn, !Ref "AWS::NoValue"]
+  #     # Encryption
+  #     StorageEncrypted: true
+  #     # KmsKeyId: !If [UseKmsKey, !Ref KmsKeyArn, !Ref "AWS::NoValue"]
 
-      # AuthN: no static password + IAM auth enabled
-      ManageMasterUserPassword: true            # Auto-generates and stores master password in Secrets Manager
-      MasterUsername: 'postgres'
-      EnableIAMDatabaseAuthentication: true     # Allow token-based IAM auth
+  #     # AuthN: no static password + IAM auth enabled
+  #     ManageMasterUserPassword: true            # Auto-generates and stores master password in Secrets Manager
+  #     MasterUsername: 'postgres'
+  #     EnableIAMDatabaseAuthentication: true     # Allow token-based IAM auth
 
-      # Logs
-      EnableCloudwatchLogsExports:
-        - postgresql
+  #     # Logs
+  #     EnableCloudwatchLogsExports:
+  #       - postgresql
 
-      # Deletion protection
-      #DeletionProtection: !If [!Equals [!Ref DeletionProtection, "true"], true, false]
+  #     # Deletion protection
+  #     #DeletionProtection: !If [!Equals [!Ref DeletionProtection, "true"], true, false]
 
-      # Serverless v2 scaling
-      ServerlessV2ScalingConfiguration:
-        MinCapacity: '{{resolve:ssm:/params/db_min_acu}}'
-        MaxCapacity: '{{resolve:ssm:/params/db_max_acu}}'
+  #     # Serverless v2 scaling
+  #     ServerlessV2ScalingConfiguration:
+  #       MinCapacity: '{{resolve:ssm:/params/db_min_acu}}'
+  #       MaxCapacity: '{{resolve:ssm:/params/db_max_acu}}'
 
-      # Tags:
-      #   - Key: Name
-      #     Value: !Ref ClusterName
+  #     # Tags:
+  #     #   - Key: Name
+  #     #     Value: !Ref ClusterName
 
-  # At least one instance is required for an Aurora v2 cluster.
-  # Use the special 'db.serverless' class for Serverless v2.
-  DBInstance:
-    Type: AWS::RDS::DBInstance
-    Properties:
-      DBClusterIdentifier: !Ref DBCluster
-      DBInstanceIdentifier: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}-instance'
-      DBInstanceClass: db.serverless
-      Engine: aurora-postgresql
-      PubliclyAccessible: false
-      AutoMinorVersionUpgrade: true
-      #EnablePerformanceInsights: !If [EnablePI, true, false]
-      MonitoringInterval: 0  # set >0 with a role for Enhanced Monitoring
-      Tags:
-        - Key: Name
-          Value: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}'
-        - Key: aws-control-tower-backupdaily
-          Value: "true"
+  # # At least one instance is required for an Aurora v2 cluster.
+  # # Use the special 'db.serverless' class for Serverless v2.
+  # DBInstance:
+  #   Type: AWS::RDS::DBInstance
+  #   Properties:
+  #     DBClusterIdentifier: !Ref DBCluster
+  #     DBInstanceIdentifier: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}-instance'
+  #     DBInstanceClass: db.serverless
+  #     Engine: aurora-postgresql
+  #     PubliclyAccessible: false
+  #     AutoMinorVersionUpgrade: true
+  #     #EnablePerformanceInsights: !If [EnablePI, true, false]
+  #     MonitoringInterval: 0  # set >0 with a role for Enhanced Monitoring
+  #     Tags:
+  #       - Key: Name
+  #         Value: !Sub '{{resolve:ssm:/params/env_name}}-${AppName}'
+  #       - Key: aws-control-tower-backupdaily
+  #         Value: "true"
 
   # DBRecordSet:
   #     Type: AWS::Route53::RecordSet
